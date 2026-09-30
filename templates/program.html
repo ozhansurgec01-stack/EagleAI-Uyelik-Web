@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Program · Üye Takip</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+<div class="app-shell">
+
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-icon">🏋️</div>
+            <div>
+                <strong>ÜYE TAKİP</strong>
+                <span>Yönetim Paneli</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="{{ url_for('dashboard') }}" class="nav-item">
+                <span>🏠</span><span>Ana Sayfa</span>
+            </a>
+            <a href="{{ url_for('uyeler_sayfasi') }}" class="nav-item">
+                <span>👥</span><span>Üyeler</span>
+            </a>
+            <a href="{{ url_for('odemeler_sayfasi') }}" class="nav-item">
+                <span>💳</span><span>Ödemeler</span>
+            </a>
+            <a href="{{ url_for('yoklama_sayfasi') }}" class="nav-item">
+                <span>📋</span><span>Yoklama</span>
+            </a>
+            <a href="{{ url_for('program_sayfasi') }}" class="nav-item active">
+                <span>📅</span><span>Program</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <span>Fitness & Üyelik</span>
+            <strong>Yönetim Sistemi</strong>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="topbar">
+            <div>
+                <h1>Program</h1>
+                <p>Haftalık ders programını yönetin.</p>
+            </div>
+        </header>
+
+        <section class="program-week">
+            {% for gun in gunler %}
+            <article class="program-day">
+                <div class="program-day-header">
+                    <div>
+                        <span class="program-day-kicker">HAFTALIK PROGRAM</span>
+                        <h2>{{ gun }}</h2>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="program-add"
+                        onclick='programDersAc({{ gun|tojson }})'
+                        aria-label="{{ gun }} ders ekle">
+                        +
+                    </button>
+                </div>
+
+                <div class="program-lessons">
+                    {% for ders in gun_programlari[gun] %}
+                    <div class="program-lesson">
+                        <div class="program-lesson-time">
+                            {{ ders.baslangic_saati }}
+                        </div>
+                        <strong>{{ ders.ders_adi }}</strong>
+                        <span>{{ ders.sure_dakika }} dk · {{ ders.egitmen }}</span>
+                    </div>
+                    {% else %}
+                    <div class="program-empty">
+                        Henüz ders eklenmedi.
+                    </div>
+                    {% endfor %}
+                </div>
+            </article>
+            {% endfor %}
+        </section>
+    </main>
+</div>
+
+<dialog id="programDersModal">
+    <form method="post"
+          action="{{ url_for('program_ders_ekle') }}"
+          class="modal program-modal">
+
+        <div class="modal-title-row">
+            <div>
+                <span class="modal-kicker">DERS PROGRAMI</span>
+                <h2>Yeni Ders</h2>
+            </div>
+            <button type="button"
+                    class="modal-close"
+                    onclick="this.closest('dialog').close()">×</button>
+        </div>
+
+        <label>Ders Adı</label>
+        <input name="ders_adi"
+               placeholder="Örn. Reformer veya Zumba"
+               required>
+
+        <label>Gün</label>
+        <select name="gun" id="programGun" required>
+            {% for gun in gunler %}
+            <option value="{{ gun }}">{{ gun }}</option>
+            {% endfor %}
+        </select>
+
+        <div class="program-form-row">
+            <div>
+                <label>Başlangıç Saati</label>
+                <input name="baslangic_saati"
+                       type="time"
+                       required>
+            </div>
+
+            <div>
+                <label>Süre (dakika)</label>
+                <input name="sure_dakika"
+                       type="number"
+                       min="1"
+                       placeholder="60"
+                       required>
+            </div>
+        </div>
+
+        <label>Eğitmen</label>
+        <input name="egitmen"
+               placeholder="Eğitmen adı"
+               required>
+
+        <button type="submit" class="primary program-submit">
+            Dersi Ekle
+        </button>
+    </form>
+</dialog>
+
+<script>
+function programDersAc(gun) {
+    const modal = document.getElementById("programDersModal");
+    const select = document.getElementById("programGun");
+
+    select.value = gun;
+    modal.showModal();
+}
+</script>
+
+</body>
+</html>

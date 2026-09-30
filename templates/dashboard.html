@@ -47,6 +47,11 @@
                 <span>📋</span>
                 <span>Yoklama</span>
             </a>
+            <a href="{{ url_for('program_sayfasi') }}"
+               class="nav-item {% if sayfa == 'program' %}active{% endif %}">
+                <span>📅</span>
+                <span>Program</span>
+            </a>
         </nav>
 
         <div class="sidebar-footer">
@@ -233,7 +238,11 @@
                     </div>
 
                     <span class="status {{ uye.durum | replace(' ', '-') }}">
-                        {{ uye.durum }}
+                        {% if uye.durum == "Yaklaşıyor" and uye.kalan_gun is not none %}
+                            {{ uye.kalan_gun }} gün kaldı
+                        {% else %}
+                            {{ uye.durum }}
+                        {% endif %}
                     </span>
                 </div>
 
