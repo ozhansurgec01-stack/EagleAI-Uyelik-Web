@@ -39,6 +39,17 @@ def init_db():
     """)
 
     db.execute("""
+        CREATE TABLE IF NOT EXISTS programlar (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            gun TEXT NOT NULL,
+            ders_adi TEXT NOT NULL,
+            baslangic_saati TEXT NOT NULL,
+            sure_dakika INTEGER NOT NULL,
+            egitmen TEXT NOT NULL
+        )
+    """)
+
+    db.execute("""
         CREATE TABLE IF NOT EXISTS yoklamalar (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             uye_id INTEGER NOT NULL,

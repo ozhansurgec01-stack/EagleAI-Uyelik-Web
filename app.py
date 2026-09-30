@@ -7,16 +7,23 @@ app = Flask(__name__)
 init_db()
 
 
-def durum_hesapla(bitis):
+def kalan_gun_hesapla(bitis):
     if not bitis:
-        return "Aktif"
+        return None
 
     try:
         bitis_tarihi = datetime.strptime(bitis, "%Y-%m-%d").date()
     except ValueError:
-        return "Aktif"
+        return None
 
-    kalan = (bitis_tarihi - date.today()).days
+    return (bitis_tarihi - date.today()).days
+
+
+def durum_hesapla(bitis):
+    kalan = kalan_gun_hesapla(bitis)
+
+    if kalan is None:
+        return "Aktif"
 
     if kalan < 0:
         return "Süresi Doldu"
@@ -62,7 +69,11 @@ def dashboard():
         """).fetchall()
 
     uyeler = [
-        dict(uye, durum=durum_hesapla(uye["bitis"]))
+        dict(
+            uye,
+            durum=durum_hesapla(uye["bitis"]),
+            kalan_gun=kalan_gun_hesapla(uye["bitis"])
+        )
         for uye in uyeler
     ]
 
@@ -252,6 +263,101 @@ def odeme_duzenle(odeme_id):
     return redirect(url_for("odemeler_sayfasi"))
 
 
+@app.route("/program")
+def program_sayfasi():
+    db = get_db()
+    gunler = [
+        "Pazartesi",
+        "Salı",
+        "Çarşamba",
+        "Perşembe",
+        "Cuma",
+        "Cumartesi",
+        "Pazar"
+    ]
+
+    programlar = db.execute("""
+        SELECT *
+        FROM programlar
+        ORDER BY
+            CASE gun
+                WHEN 'Pazartesi' THEN 1
+                WHEN 'Salı' THEN 2
+                WHEN 'Çarşamba' THEN 3
+                WHEN 'Perşembe' THEN 4
+                WHEN 'Cuma' THEN 5
+                WHEN 'Cumartesi' THEN 6
+                WHEN 'Pazar' THEN 7
+                ELSE 8
+            END,
+            baslangic_saati
+    """).fetchall()
+
+    db.close()
+
+    gun_programlari = {
+        gun: [dict(p) for p in programlar if p["gun"] == gun]
+        for gun in gunler
+    }
+
+    return render_template(
+        "program.html",
+        gunler=gunler,
+        gun_programlari=gun_programlari,
+        sayfa="program"
+    )
+
+
+@app.route("/program/ders-ekle", methods=["POST"])
+def program_ders_ekle():
+    ders_adi = request.form.get("ders_adi", "").strip()
+    gun = request.form.get("gun", "").strip()
+    baslangic_saati = request.form.get("baslangic_saati", "").strip()
+    sure_dakika = request.form.get("sure_dakika", "").strip()
+    egitmen = request.form.get("egitmen", "").strip()
+
+    gunler = {
+        "Pazartesi",
+        "Salı",
+        "Çarşamba",
+        "Perşembe",
+        "Cuma",
+        "Cumartesi",
+        "Pazar"
+    }
+
+    try:
+        sure = int(sure_dakika)
+    except ValueError:
+        return redirect(url_for("program_sayfasi"))
+
+    if (
+        not ders_adi
+        or gun not in gunler
+        or not baslangic_saati
+        or sure <= 0
+        or not egitmen
+    ):
+        return redirect(url_for("program_sayfasi"))
+
+    db = get_db()
+    db.execute("""
+        INSERT INTO programlar
+        (gun, ders_adi, baslangic_saati, sure_dakika, egitmen)
+        VALUES (?, ?, ?, ?, ?)
+    """, (
+        gun,
+        ders_adi,
+        baslangic_saati,
+        sure,
+        egitmen
+    ))
+    db.commit()
+    db.close()
+
+    return redirect(url_for("program_sayfasi"))
+
+
 @app.route("/uyeler")
 def uyeler_sayfasi():
     db = get_db()
@@ -281,7 +387,11 @@ def uyeler_sayfasi():
         """).fetchall()
 
     uyeler = [
-        dict(uye, durum=durum_hesapla(uye["bitis"]))
+        dict(
+            uye,
+            durum=durum_hesapla(uye["bitis"]),
+            kalan_gun=kalan_gun_hesapla(uye["bitis"])
+        )
         for uye in uyeler
     ]
 

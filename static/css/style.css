@@ -1246,3 +1246,182 @@ dialog::backdrop {
         gap: 4px;
     }
 }
+
+
+/* EAGLE PROGRAM */
+
+.program-week {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(150px, 1fr));
+    gap: 14px;
+    margin-top: 22px;
+}
+
+.program-day {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    padding: 16px;
+    min-height: 250px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, .06);
+}
+
+.program-day-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.program-day-kicker {
+    display: block;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    color: #94a3b8;
+    margin-bottom: 5px;
+}
+
+.program-day h2 {
+    margin: 0;
+    font-size: 17px;
+}
+
+.program-add {
+    width: 38px;
+    height: 38px;
+    border: 0;
+    border-radius: 12px;
+    background: #2563eb;
+    color: #fff;
+    font-size: 25px;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 7px 16px rgba(37, 99, 235, .22);
+}
+
+.program-add:hover {
+    transform: translateY(-1px);
+}
+
+.program-lessons {
+    display: grid;
+    gap: 10px;
+}
+
+.program-lesson {
+    padding: 12px;
+    border-radius: 13px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.program-lesson-time {
+    font-size: 13px;
+    font-weight: 800;
+    color: #2563eb;
+    margin-bottom: 5px;
+}
+
+.program-lesson strong {
+    display: block;
+    font-size: 14px;
+}
+
+.program-lesson span {
+    display: block;
+    margin-top: 4px;
+    color: #64748b;
+    font-size: 12px;
+}
+
+.program-empty {
+    color: #94a3b8;
+    font-size: 12px;
+    padding: 14px 4px;
+    text-align: center;
+}
+
+.program-modal {
+    width: min(520px, calc(100vw - 32px));
+}
+
+.program-modal label {
+    display: block;
+    margin: 13px 0 6px;
+    font-size: 13px;
+    font-weight: 800;
+    color: #334155;
+}
+
+.program-modal input,
+.program-modal select {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.program-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.program-submit {
+    width: 100%;
+    margin-top: 20px;
+}
+
+.today-alert.has-expiring {
+    animation: eagleTodayPulse 1.15s ease-in-out infinite;
+}
+
+.today-alert.has-expiring .today-dot {
+    animation: eagleTodayDot 850ms ease-in-out infinite;
+}
+
+@keyframes eagleTodayPulse {
+    0%, 100% {
+        transform: scale(1);
+        filter: brightness(1);
+        box-shadow: 0 8px 25px rgba(220, 38, 38, .18);
+    }
+    50% {
+        transform: scale(1.018);
+        filter: brightness(1.12);
+        box-shadow: 0 8px 42px rgba(220, 38, 38, .52);
+    }
+}
+
+@keyframes eagleTodayDot {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.65);
+        opacity: .55;
+    }
+}
+
+@media (max-width: 1200px) {
+    .program-week {
+        grid-template-columns: repeat(4, minmax(160px, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+    .program-week {
+        grid-template-columns: repeat(2, minmax(140px, 1fr));
+    }
+
+    .program-form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .program-week {
+        grid-template-columns: 1fr;
+    }
+}
