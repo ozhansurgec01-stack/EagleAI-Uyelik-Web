@@ -412,6 +412,51 @@ def uyeler_sayfasi():
     )
 
 
+
+@app.route("/odeme/<int:odeme_id>/sil", methods=["POST"])
+def odeme_sil(odeme_id):
+    db = get_db()
+    db.execute("""
+        DELETE FROM odemeler
+        WHERE id = ?
+    """, (odeme_id,))
+    db.commit()
+    db.close()
+    return redirect(url_for("odemeler_sayfasi"))
+
+
+@app.route("/gider/ekle", methods=["POST"])
+def gider_ekle():
+    ad = request.form.get("ad", "").strip()
+    tutar = request.form.get("tutar", "").strip()
+    tarih = request.form.get("tarih", "").strip()
+    aciklama = request.form.get("aciklama", "").strip()
+
+    if not ad or not tutar:
+        return redirect(url_for("odemeler_sayfasi"))
+
+    db = get_db()
+    db.execute("""
+        INSERT INTO giderler
+        (ad, tutar, tarih, aciklama)
+        VALUES (?, ?, ?, ?)
+    """, (ad, tutar, tarih, aciklama))
+    db.commit()
+    db.close()
+    return redirect(url_for("odemeler_sayfasi"))
+
+
+@app.route("/gider/<int:gider_id>/sil", methods=["POST"])
+def gider_sil(gider_id):
+    db = get_db()
+    db.execute("""
+        DELETE FROM giderler
+        WHERE id = ?
+    """, (gider_id,))
+    db.commit()
+    db.close()
+    return redirect(url_for("odemeler_sayfasi"))
+
 @app.route("/odemeler")
 def odemeler_sayfasi():
     db = get_db()
@@ -426,10 +471,23 @@ def odemeler_sayfasi():
         ORDER BY odemeler.id DESC
     """).fetchall()
 
+    giderler = db.execute("""
+        SELECT *
+        FROM giderler
+        ORDER BY id DESC
+    """).fetchall()
+
     toplam_tutar = 0.0
     for odeme in odemeler:
         try:
             toplam_tutar += float(str(odeme["tutar"]).replace(",", "."))
+        except (TypeError, ValueError):
+            pass
+
+    toplam_gider = 0.0
+    for gider in giderler:
+        try:
+            toplam_gider += float(str(gider["tutar"]).replace(",", "."))
         except (TypeError, ValueError):
             pass
 
@@ -447,9 +505,10 @@ def odemeler_sayfasi():
         arama="",
         odemeler=odemeler,
         toplam_tutar=toplam_tutar,
+        giderler=giderler,
+        toplam_gider=toplam_gider,
         sayfa="odemeler"
     )
-
 
 @app.route("/yoklama")
 def yoklama_sayfasi():

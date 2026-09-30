@@ -50,6 +50,16 @@ def init_db():
     """)
 
     db.execute("""
+        CREATE TABLE IF NOT EXISTS giderler (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ad TEXT NOT NULL,
+            tutar TEXT,
+            tarih TEXT,
+            aciklama TEXT
+        )
+    """)
+
+    db.execute("""
         CREATE TABLE IF NOT EXISTS yoklamalar (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             uye_id INTEGER NOT NULL,
