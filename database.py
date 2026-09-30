@@ -38,5 +38,15 @@ def init_db():
         )
     """)
 
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS yoklamalar (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            uye_id INTEGER NOT NULL,
+            tarih TEXT NOT NULL,
+            geldi INTEGER NOT NULL DEFAULT 0,
+            UNIQUE(uye_id, tarih)
+        )
+    """)
+
     db.commit()
     db.close()
