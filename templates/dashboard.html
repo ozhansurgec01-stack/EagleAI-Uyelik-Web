@@ -222,7 +222,7 @@
 
         <section class="members">
             {% for uye in uyeler %}
-            <article class="member-card">
+            <article class="member-card {% if secili_uye_id is defined and secili_uye_id == uye.id %}selected-member{% endif %}" data-member-id="{{ uye.id }}">
 
                 <div class="member-head">
                     <div class="avatar">{{ uye.ad[:1] | upper }}</div>
@@ -326,6 +326,7 @@
                         <th>Tutar</th>
                         <th>Ay</th>
                         <th>Açıklama</th>
+                        <th>İşlem</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -339,10 +340,16 @@
                         <td class="amount">{{ odeme.tutar or "-" }} TL</td>
                         <td>{{ odeme.ay_sayisi or 1 }}</td>
                         <td>{{ odeme.aciklama or "-" }}</td>
+                        <td>
+                            <button class="gray small-button"
+                                    onclick='odemeDuzenleAc({{ odeme.id }}, {{ (odeme.tutar or "")|tojson }}, {{ (odeme.tarih or "")|tojson }}, {{ (odeme.ay_sayisi or 1)|tojson }}, {{ (odeme.aciklama or "")|tojson }})'>
+                                ✏️ Düzelt
+                            </button>
+                        </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="5" class="table-empty">
+                        <td colspan="6" class="table-empty">
                             Henüz ödeme kaydı bulunmuyor.
                         </td>
                     </tr>
@@ -484,10 +491,10 @@
                     <strong>{{ uye.ad }} {{ uye.soyad or "" }}</strong>
                     <span>{{ uye.telefon or "Telefon yok" }}</span>
                 </div>
-                <button class="green-btn small-button"
-                        onclick='yenileAc({{ uye.id }}, {{ (uye.bitis or "")|tojson }}); document.getElementById("bugunModal").close();'>
-                    Yenile
-                </button>
+                <a class="green-btn small-button"
+                   href="{{ url_for('uyeler_sayfasi') }}?uye_id={{ uye.id }}">
+                    👤 Üyeye Git
+                </a>
             </div>
             {% else %}
             <div class="empty-history">Bugün üyeliği biten üye yok.</div>
@@ -574,6 +581,36 @@
     </form>
 </dialog>
 
+
+<!-- ÖDEME DÜZENLE -->
+<dialog id="odemeDuzenleModal">
+    <form method="post" id="odemeDuzenleForm" class="modal">
+        <h2>✏️ Ödeme Düzelt</h2>
+
+        <input id="odemeDuzenleTutar"
+               name="tutar"
+               placeholder="Tutar (TL)">
+
+        <input id="odemeDuzenleAy"
+               name="ay_sayisi"
+               type="number"
+               min="1"
+               placeholder="Üyelik Süresi (Ay)">
+
+        <input id="odemeDuzenleTarih"
+               name="tarih"
+               type="date">
+
+        <input id="odemeDuzenleAciklama"
+               name="aciklama"
+               placeholder="Açıklama">
+
+        <div class="modal-actions">
+            <button type="button" onclick="this.closest('dialog').close()">İptal</button>
+            <button class="primary" type="submit">💾 Kaydet</button>
+        </div>
+    </form>
+</dialog>
 
 <!-- ÖDEME GEÇMİŞİ -->
 <dialog id="gecmisModal">
@@ -675,9 +712,27 @@ function escapeHtml(value) {
         .replaceAll("'", "&#039;");
 }
 
+function odemeDuzenleAc(id, tutar, tarih, ay, aciklama) {
+    document.getElementById("odemeDuzenleForm").action = `/odeme/${id}/duzenle`;
+    document.getElementById("odemeDuzenleTutar").value = tutar;
+    document.getElementById("odemeDuzenleTarih").value = tarih;
+    document.getElementById("odemeDuzenleAy").value = ay;
+    document.getElementById("odemeDuzenleAciklama").value = aciklama;
+    document.getElementById("odemeDuzenleModal").showModal();
+}
+
 function duyuruBilgisi() {
     alert("SMS Duyuru için toplu mesaj akışı bir sonraki adımda eklenecek.");
 }
+    document.addEventListener("DOMContentLoaded", function () {
+        const selected = document.querySelector(".selected-member");
+        if (selected) {
+            selected.scrollIntoView({
+                behavior: "smooth",
+                block: "center"
+            });
+        }
+    });
 </script>
 
 </body>
