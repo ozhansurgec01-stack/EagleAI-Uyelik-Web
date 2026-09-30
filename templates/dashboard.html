@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Üye Takip</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<header class="header">
+    <div>
+        <div class="brand">🏋️ ÜYE TAKİP</div>
+        <div class="subtitle">Fitness & Üyelik Yönetim Paneli</div>
+    </div>
+</header>
+
+<main class="container">
+
+    <section class="stats">
+        <div class="stat blue">
+            <span>TOPLAM ÜYE</span>
+            <strong>{{ toplam }}</strong>
+        </div>
+        <div class="stat green">
+            <span>AKTİF ÜYE</span>
+            <strong>{{ aktif }}</strong>
+        </div>
+        <div class="stat orange">
+            <span>YAKLAŞIYOR</span>
+            <strong>{{ yaklasan }}</strong>
+        </div>
+        <div class="stat red">
+            <span>SÜRESİ DOLDU</span>
+            <strong>{{ dolan }}</strong>
+        </div>
+    </section>
+
+    <div class="today">
+        🔴 BUGÜN BİTİYOR <b>{{ bugun }}</b>
+    </div>
+
+    <section class="toolbar">
+        <form method="get" class="search">
+            <input name="arama" value="{{ arama }}" placeholder="🔎 Üye ara...">
+            <button type="submit">Ara</button>
+        </form>
+
+        <button class="primary" onclick="document.getElementById('uyeModal').showModal()">
+            ➕ Yeni Üye
+        </button>
+
+        <button class="dark" onclick="duyuruBilgisi()">
+            📩 SMS Duyuru
+        </button>
+    </section>
+
+    <section class="members">
+        {% for uye in uyeler %}
+        <article class="member-card">
+
+            <div class="member-head">
+                <div class="avatar">{{ uye.ad[:1] | upper }}</div>
+
+                <div class="member-name">
+                    <h3>{{ uye.ad }} {{ uye.soyad or "" }}</h3>
+                    <p>{{ uye.telefon or "Telefon yok" }}</p>
+                </div>
+
+                <span class="status {{ uye.durum | replace(' ', '-') }}">
+                    {{ uye.durum }}
+                </span>
+            </div>
+
+            <div class="dates">
+                <div>
+                    <small>Başlangıç</small>
+                    <b>{{ uye.baslangic or "-" }}</b>
+                </div>
+                <div>
+                    <small>Bitiş</small>
+                    <b>{{ uye.bitis or "-" }}</b>
+                </div>
+            </div>
+
+            <div class="actions">
+
+                <button class="gray"
+                        onclick='duzenleAc({{ uye.id }}, {{ uye.ad|tojson }}, {{ (uye.soyad or "")|tojson }}, {{ (uye.telefon or "")|tojson }}, {{ (uye.notlar or "")|tojson }}, {{ (uye.baslangic or "")|tojson }}, {{ (uye.bitis or "")|tojson }})'>
+                    ✏️ Düzenle
+                </button>
+
+                <button class="green-btn"
+                        onclick='yenileAc({{ uye.id }}, {{ (uye.bitis or "")|tojson }})'>
+                    🔄 Yenile
+                </button>
+
+                <button class="blue-btn"
+                        onclick='odemeAc({{ uye.id }})'>
+                    💳 Ödeme
+                </button>
+
+                <button class="purple"
+                        onclick='gecmisAc({{ uye.id }}, {{ (uye.ad ~ " " ~ (uye.soyad or ""))|tojson }})'>
+                    📜 Geçmiş
+                </button>
+
+                {% if uye.telefon %}
+                <a class="dark action-link"
+                   href="sms:{{ uye.telefon }}">
+                    📩 SMS
+                </a>
+                {% else %}
+                <button class="dark" onclick="alert('Bu üyenin telefon numarası yok.')">
+                    📩 SMS
+                </button>
+                {% endif %}
+
+                <form method="post"
+                      action="{{ url_for('uye_sil', uye_id=uye.id) }}"
+                      onsubmit="return confirm('Bu üyeyi ve ödeme kayıtlarını silmek istediğinize emin misiniz?')">
+                    <button class="red-btn" type="submit">🗑️ Sil</button>
+                </form>
+
+            </div>
+        </article>
+
+        {% else %}
+        <div class="empty">
+            Henüz üye bulunmuyor.
+        </div>
+        {% endfor %}
+    </section>
+</main>
+
+
+<dialog id="uyeModal">
+    <form method="post" action="{{ url_for('uye_yeni') }}" class="modal">
+        <h2>Yeni Üye</h2>
+
+        <input name="ad" placeholder="Ad" required>
+        <input name="soyad" placeholder="Soyad">
+        <input name="telefon" placeholder="Telefon">
+        <input name="baslangic" type="date">
+        <input name="bitis" type="date">
+        <textarea name="notlar" placeholder="Notlar"></textarea>
+
+        <div class="modal-actions">
+            <button type="button" onclick="this.closest('dialog').close()">İptal</button>
+            <button class="primary" type="submit">Kaydet</button>
+        </div>
+    </form>
+</dialog>
+
+
+<dialog id="duzenleModal">
+    <form method="post" id="duzenleForm" class="modal">
+        <h2>Üye Düzenle</h2>
+
+        <input id="duzenleAd" name="ad" placeholder="Ad" required>
+        <input id="duzenleSoyad" name="soyad" placeholder="Soyad">
+        <input id="duzenleTelefon" name="telefon" placeholder="Telefon">
+        <textarea id="duzenleNotlar" name="notlar" placeholder="Notlar"></textarea>
+        <input id="duzenleBaslangic" name="baslangic" type="date">
+        <input id="duzenleBitis" name="bitis" type="date">
+
+        <div class="modal-actions">
+            <button type="button" onclick="this.closest('dialog').close()">İptal</button>
+            <button class="primary" type="submit">Kaydet</button>
+        </div>
+    </form>
+</dialog>
+
+
+<dialog id="yenileModal">
+    <form method="post" id="yenileForm" class="modal">
+        <h2>Üyelik Yenile</h2>
+
+        <label>Yeni bitiş tarihi</label>
+        <input id="yenileBitis" name="bitis" type="date" required>
+
+        <div class="modal-actions">
+            <button type="button" onclick="this.closest('dialog').close()">İptal</button>
+            <button class="green-btn" type="submit">🔄 Yenile</button>
+        </div>
+    </form>
+</dialog>
+
+
+<dialog id="odemeModal">
+    <form method="post" id="odemeForm" class="modal">
+        <h2>💳 Ödeme Ekle</h2>
+
+        <input name="tutar" placeholder="Tutar (TL)">
+        <input name="ay_sayisi" type="number" min="1" value="1" placeholder="Üyelik Süresi (Ay)">
+        <input name="tarih" type="date">
+        <input name="aciklama" placeholder="Açıklama">
+
+        <div class="modal-actions">
+            <button type="button" onclick="this.closest('dialog').close()">İptal</button>
+            <button class="blue-btn" type="submit">💾 Kaydet</button>
+        </div>
+    </form>
+</dialog>
+
+
+<dialog id="gecmisModal">
+    <div class="modal">
+        <h2>📜 Ödeme Geçmişi</h2>
+        <div id="gecmisIcerik" class="history">
+            Yükleniyor...
+        </div>
+
+        <div class="modal-actions">
+            <button type="button" onclick="this.closest('dialog').close()">Kapat</button>
+        </div>
+    </div>
+</dialog>
+
+
+<script>
+function duzenleAc(id, ad, soyad, telefon, notlar, baslangic, bitis) {
+    document.getElementById("duzenleForm").action = `/uye/${id}/duzenle`;
+    document.getElementById("duzenleAd").value = ad;
+    document.getElementById("duzenleSoyad").value = soyad;
+    document.getElementById("duzenleTelefon").value = telefon;
+    document.getElementById("duzenleNotlar").value = notlar;
+    document.getElementById("duzenleBaslangic").value = baslangic;
+    document.getElementById("duzenleBitis").value = bitis;
+    document.getElementById("duzenleModal").showModal();
+}
+
+function yenileAc(id, bitis) {
+    document.getElementById("yenileForm").action = `/uye/${id}/yenile`;
+    document.getElementById("yenileBitis").value = bitis;
+    document.getElementById("yenileModal").showModal();
+}
+
+function odemeAc(id) {
+    const form = document.getElementById("odemeForm");
+    form.action = `/uye/${id}/odeme`;
+    form.reset();
+
+    const tarih = form.querySelector('[name="tarih"]');
+    const today = new Date().toISOString().slice(0, 10);
+    tarih.value = today;
+
+    document.getElementById("odemeModal").showModal();
+}
+
+async function gecmisAc(id, adSoyad) {
+    const dialog = document.getElementById("gecmisModal");
+    const alan = document.getElementById("gecmisIcerik");
+
+    alan.innerHTML = "<p>Yükleniyor...</p>";
+    dialog.querySelector("h2").textContent = `📜 ${adSoyad} - Ödeme Geçmişi`;
+    dialog.showModal();
+
+    try {
+        const response = await fetch(`/api/uye/${id}/odemeler`);
+
+        if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+        }
+
+        const odemeler = await response.json();
+
+        if (!odemeler.length) {
+            alan.innerHTML = '<div class="empty-history">Bu üyeye ait ödeme kaydı yok.</div>';
+            return;
+        }
+
+        alan.innerHTML = odemeler.map(o => `
+            <div class="history-item">
+                <strong>Tutar: ${escapeHtml(o.tutar || "-")} TL</strong>
+                <span>Tarih: ${escapeHtml(o.tarih || "-")}</span>
+                <span>${escapeHtml(o.aciklama || "")}</span>
+            </div>
+        `).join("");
+    } catch (error) {
+        alan.innerHTML = "<p>Ödeme geçmişi yüklenemedi.</p>";
+    }
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+function duyuruBilgisi() {
+    alert("SMS Duyuru için toplu mesaj akışı bir sonraki adımda eklenecek.");
+}
+</script>
+
+</body>
+</html>
