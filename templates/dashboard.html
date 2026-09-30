@@ -238,8 +238,12 @@
                     </div>
 
                     <span class="status {{ uye.durum | replace(' ', '-') }}">
-                        {% if uye.durum == "Yaklaşıyor" and uye.kalan_gun is not none %}
-                            {{ uye.kalan_gun }} gün kaldı
+                        {% if uye.kalan_gun is not none and uye.kalan_gun >= 0 %}
+                            {% if uye.kalan_gun == 0 %}
+                                Bugün bitiyor
+                            {% else %}
+                                {{ uye.kalan_gun }} gün kaldı
+                            {% endif %}
                         {% else %}
                             {{ uye.durum }}
                         {% endif %}
