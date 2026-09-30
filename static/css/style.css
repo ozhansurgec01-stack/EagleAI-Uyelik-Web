@@ -388,12 +388,20 @@ a {
 
 @keyframes todayPulse {
     0%, 100% {
+        transform: scale(1);
         box-shadow: 0 8px 25px rgba(220, 38, 38, .16);
     }
 
     50% {
-        box-shadow: 0 8px 30px rgba(220, 38, 38, .42);
+        transform: scale(1.012);
+        box-shadow: 0 8px 34px rgba(220, 38, 38, .48);
     }
+}
+
+.member-card.selected-member {
+    scroll-margin-top: 100px;
+    outline: 3px solid rgba(22, 163, 74, .45);
+    box-shadow: 0 0 0 6px rgba(22, 163, 74, .10), var(--shadow);
 }
 
 

@@ -211,11 +211,57 @@ def odeme_ekle(uye_id):
     return redirect(url_for("dashboard"))
 
 
+@app.route("/odeme/<int:odeme_id>/duzenle", methods=["POST"])
+def odeme_duzenle(odeme_id):
+    tutar = request.form.get("tutar", "").strip()
+    tarih = request.form.get("tarih", "").strip()
+    aciklama = request.form.get("aciklama", "").strip()
+
+    try:
+        ay = int(request.form.get("ay_sayisi", "1"))
+    except ValueError:
+        ay = 1
+
+    if ay < 1:
+        ay = 1
+
+    db = get_db()
+
+    odeme = db.execute("""
+        SELECT uye_id
+        FROM odemeler
+        WHERE id = ?
+    """, (odeme_id,)).fetchone()
+
+    if not odeme:
+        db.close()
+        return redirect(url_for("odemeler_sayfasi"))
+
+    db.execute("""
+        UPDATE odemeler
+        SET tutar = ?,
+            tarih = ?,
+            aciklama = ?,
+            ay_sayisi = ?
+        WHERE id = ?
+    """, (tutar, tarih, aciklama, ay, odeme_id))
+
+    db.commit()
+    db.close()
+
+    return redirect(url_for("odemeler_sayfasi"))
+
+
 @app.route("/uyeler")
 def uyeler_sayfasi():
     db = get_db()
 
     arama = request.args.get("arama", "").strip()
+
+    try:
+        secili_uye_id = int(request.args.get("uye_id", "0"))
+    except ValueError:
+        secili_uye_id = 0
 
     if arama:
         pattern = f"%{arama}%"
@@ -251,6 +297,7 @@ def uyeler_sayfasi():
         bugun=sum(u["durum"] == "Bugün Bitiyor" for u in uyeler),
         bugun_bitenler=[u for u in uyeler if u["durum"] == "Bugün Bitiyor"],
         arama=arama,
+        secili_uye_id=secili_uye_id,
         sayfa="uyeler"
     )
 
