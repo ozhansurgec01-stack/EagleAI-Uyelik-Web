@@ -55,7 +55,7 @@
         </nav>
 
         <div class="sidebar-footer">
-            <span>Fitness & Üyelik</span>
+            <span>Crazy Zumba Pilates</span>
             <strong>Yönetim Sistemi</strong>
         </div>
     </aside>
@@ -304,71 +304,138 @@
         {% endif %}
 
 
-        {% if sayfa == "odemeler" %}
+{% if sayfa == "odemeler" %}
+<section class="payment-summary">
+    <div class="summary-card summary-payment">
+        <span>TOPLAM ÖDEME</span>
+        <strong>{{ "%.2f"|format(toplam_tutar) }} TL</strong>
+    </div>
 
-        <section class="payment-summary">
-            <div class="summary-card">
-                <span>TOPLAM ÖDEME</span>
-                <strong>{{ "%.2f"|format(toplam_tutar) }} TL</strong>
-            </div>
+    <div class="summary-card summary-record">
+        <span>ÖDEME KAYDI</span>
+        <strong>{{ odemeler|length }}</strong>
+    </div>
 
-            <div class="summary-card">
-                <span>ÖDEME KAYDI</span>
-                <strong>{{ odemeler|length }}</strong>
-            </div>
-        </section>
+    <div class="summary-card summary-expense">
+        <span>TOPLAM GİDER</span>
+        <strong>{{ "%.2f"|format(toplam_gider) }} TL</strong>
+    </div>
+</section>
 
-        <section class="panel">
-            <div class="panel-header">
-                <div>
-                    <h2>Ödeme Kayıtları</h2>
-                    <p>Tüm üyelerin ödeme geçmişi</p>
-                </div>
-            </div>
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>Ödeme Kayıtları</h2>
+            <p>Tüm üyelerin ödeme geçmişi</p>
+        </div>
+    </div>
 
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                    <tr>
-                        <th>Üye</th>
-                        <th>Tarih</th>
-                        <th>Tutar</th>
-                        <th>Ay</th>
-                        <th>Açıklama</th>
-                        <th>İşlem</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for odeme in odemeler %}
-                    <tr>
-                        <td>
-                            <strong>{{ odeme.ad or "Silinmiş üye" }}
-                                {{ odeme.soyad or "" }}</strong>
-                        </td>
-                        <td>{{ odeme.tarih or "-" }}</td>
-                        <td class="amount">{{ odeme.tutar or "-" }} TL</td>
-                        <td>{{ odeme.ay_sayisi or 1 }}</td>
-                        <td>{{ odeme.aciklama or "-" }}</td>
-                        <td>
-                            <button class="gray small-button"
-                                    onclick='odemeDuzenleAc({{ odeme.id }}, {{ (odeme.tutar or "")|tojson }}, {{ (odeme.tarih or "")|tojson }}, {{ (odeme.ay_sayisi or 1)|tojson }}, {{ (odeme.aciklama or "")|tojson }})'>
-                                ✏️ Düzelt
-                            </button>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="6" class="table-empty">
-                            Henüz ödeme kaydı bulunmuyor.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </section>
+    <div class="table-wrap">
+        <table>
+            <thead>
+            <tr>
+                <th>Üye</th>
+                <th>Tarih</th>
+                <th>Tutar</th>
+                <th>Ay</th>
+                <th>Açıklama</th>
+                <th>İşlem</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for odeme in odemeler %}
+            <tr>
+                <td>
+                    <strong>{{ odeme.ad or "Silinmiş üye" }}
+                        {{ odeme.soyad or "" }}</strong>
+                </td>
+                <td>{{ odeme.tarih or "-" }}</td>
+                <td class="amount">{{ odeme.tutar or "-" }} TL</td>
+                <td>{{ odeme.ay_sayisi or 1 }}</td>
+                <td>{{ odeme.aciklama or "-" }}</td>
+                <td class="payment-actions">
+                    <button class="gray small-button"
+                        onclick='odemeDuzenleAc({{ odeme.id }}, {{ (odeme.tutar or "")|tojson }}, {{ (odeme.tarih or "")|tojson }}, {{ (odeme.ay_sayisi or 1)|tojson }}, {{ (odeme.aciklama or "")|tojson }})'>
+                        ✏️ Düzelt
+                    </button>
 
-        {% endif %}
+                    <form method="post"
+                          action="{{ url_for('odeme_sil', odeme_id=odeme.id) }}"
+                          onsubmit="return confirm('Bu ödeme kaydını silmek istediğine emin misin?');">
+                        <button class="danger small-button" type="submit">
+                            🗑️ Sil
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" class="table-empty">
+                    Henüz ödeme kaydı bulunmuyor.
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="panel expense-panel">
+    <div class="panel-header">
+        <div>
+            <h2>💸 Giderler</h2>
+            <p>İşletme giderlerini buradan kaydedebilirsin.</p>
+        </div>
+    </div>
+
+    <form method="post" action="{{ url_for('gider_ekle') }}" class="expense-form">
+        <input name="ad" placeholder="Gider adı" required>
+        <input name="tutar" inputmode="decimal" placeholder="Tutar (TL)" required>
+        <input name="tarih" type="date">
+        <input name="aciklama" placeholder="Açıklama">
+        <button class="primary" type="submit">➕ Gider Ekle</button>
+    </form>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+            <tr>
+                <th>Gider</th>
+                <th>Tarih</th>
+                <th>Tutar</th>
+                <th>Açıklama</th>
+                <th>İşlem</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for gider in giderler %}
+            <tr>
+                <td><strong>{{ gider.ad }}</strong></td>
+                <td>{{ gider.tarih or "-" }}</td>
+                <td class="amount">{{ gider.tutar or "-" }} TL</td>
+                <td>{{ gider.aciklama or "-" }}</td>
+                <td>
+                    <form method="post"
+                          action="{{ url_for('gider_sil', gider_id=gider.id) }}"
+                          onsubmit="return confirm('Bu gider kaydını silmek istediğine emin misin?');">
+                        <button class="danger small-button" type="submit">
+                            🗑️ Sil
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" class="table-empty">
+                    Henüz gider kaydı bulunmuyor.
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endif %}
 
 
         {% if sayfa == "yoklama" %}

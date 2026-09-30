@@ -339,6 +339,15 @@ a {
 }
 
 
+.stat-card {
+    transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, .10);
+}
+
 /* TODAY ALERT */
 
 .today-alert {
@@ -710,16 +719,29 @@ textarea:focus {
     max-width: 1350px;
     margin: 0 auto 18px;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
     gap: 15px;
 }
 
 .summary-card {
+    position: relative;
+    overflow: hidden;
     padding: 20px;
     background: white;
     border: 1px solid var(--border);
     border-radius: 17px;
     box-shadow: var(--shadow);
+}
+
+.summary-card::after {
+    content: "";
+    position: absolute;
+    right: -28px;
+    top: -28px;
+    width: 82px;
+    height: 82px;
+    border-radius: 50%;
+    opacity: .12;
 }
 
 .summary-card span {
@@ -732,8 +754,77 @@ textarea:focus {
 .summary-card strong {
     display: block;
     margin-top: 6px;
-    color: var(--primary);
     font-size: 25px;
+}
+
+.summary-payment {
+    border-top: 4px solid #2563eb;
+}
+
+.summary-payment strong {
+    color: #2563eb;
+}
+
+.summary-payment::after {
+    background: #2563eb;
+}
+
+.summary-record {
+    border-top: 4px solid #16a34a;
+}
+
+.summary-record strong {
+    color: #16a34a;
+}
+
+.summary-record::after {
+    background: #16a34a;
+}
+
+.summary-expense {
+    border-top: 4px solid #ea580c;
+}
+
+.summary-expense strong {
+    color: #ea580c;
+}
+
+.summary-expense::after {
+    background: #ea580c;
+}
+
+.payment-actions {
+    white-space: nowrap;
+}
+
+.payment-actions form {
+    display: inline-block;
+    margin-left: 5px;
+}
+
+.expense-panel {
+    margin-top: 18px;
+}
+
+.expense-form {
+    display: grid;
+    grid-template-columns: 1.2fr .8fr 1fr 1.5fr auto;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.expense-form input {
+    min-width: 0;
+}
+
+.danger {
+    background: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+
+.danger:hover {
+    background: #fecaca;
 }
 
 .table-wrap {
@@ -1160,6 +1251,10 @@ dialog::backdrop {
     }
 
     .payment-summary {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .expense-form {
         grid-template-columns: 1fr 1fr;
     }
 }
