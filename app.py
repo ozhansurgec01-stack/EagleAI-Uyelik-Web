@@ -71,6 +71,7 @@ def dashboard():
     yaklasan = sum(u["durum"] == "Yaklaşıyor" for u in uyeler)
     dolan = sum(u["durum"] == "Süresi Doldu" for u in uyeler)
     bugun = sum(u["durum"] == "Bugün Bitiyor" for u in uyeler)
+    bugun_bitenler = [u for u in uyeler if u["durum"] == "Bugün Bitiyor"]
 
     db.close()
 
@@ -82,6 +83,7 @@ def dashboard():
         yaklasan=yaklasan,
         dolan=dolan,
         bugun=bugun,
+        bugun_bitenler=bugun_bitenler,
         arama=arama
     )
 
@@ -155,6 +157,7 @@ def uye_sil(uye_id):
     db = get_db()
 
     db.execute("DELETE FROM odemeler WHERE uye_id = ?", (uye_id,))
+    db.execute("DELETE FROM yoklamalar WHERE uye_id = ?", (uye_id,))
     db.execute("DELETE FROM uyeler WHERE id = ?", (uye_id,))
 
     db.commit()
@@ -206,6 +209,173 @@ def odeme_ekle(uye_id):
     db.close()
 
     return redirect(url_for("dashboard"))
+
+
+@app.route("/uyeler")
+def uyeler_sayfasi():
+    db = get_db()
+
+    arama = request.args.get("arama", "").strip()
+
+    if arama:
+        pattern = f"%{arama}%"
+        uyeler = db.execute("""
+            SELECT *
+            FROM uyeler
+            WHERE ad LIKE ?
+               OR soyad LIKE ?
+               OR telefon LIKE ?
+            ORDER BY id DESC
+        """, (pattern, pattern, pattern)).fetchall()
+    else:
+        uyeler = db.execute("""
+            SELECT *
+            FROM uyeler
+            ORDER BY id DESC
+        """).fetchall()
+
+    uyeler = [
+        dict(uye, durum=durum_hesapla(uye["bitis"]))
+        for uye in uyeler
+    ]
+
+    db.close()
+
+    return render_template(
+        "dashboard.html",
+        uyeler=uyeler,
+        toplam=len(uyeler),
+        aktif=sum(u["durum"] == "Aktif" for u in uyeler),
+        yaklasan=sum(u["durum"] == "Yaklaşıyor" for u in uyeler),
+        dolan=sum(u["durum"] == "Süresi Doldu" for u in uyeler),
+        bugun=sum(u["durum"] == "Bugün Bitiyor" for u in uyeler),
+        bugun_bitenler=[u for u in uyeler if u["durum"] == "Bugün Bitiyor"],
+        arama=arama,
+        sayfa="uyeler"
+    )
+
+
+@app.route("/odemeler")
+def odemeler_sayfasi():
+    db = get_db()
+
+    odemeler = db.execute("""
+        SELECT
+            odemeler.*,
+            uyeler.ad,
+            uyeler.soyad
+        FROM odemeler
+        LEFT JOIN uyeler ON uyeler.id = odemeler.uye_id
+        ORDER BY odemeler.id DESC
+    """).fetchall()
+
+    toplam_tutar = 0.0
+    for odeme in odemeler:
+        try:
+            toplam_tutar += float(str(odeme["tutar"]).replace(",", "."))
+        except (TypeError, ValueError):
+            pass
+
+    db.close()
+
+    return render_template(
+        "dashboard.html",
+        uyeler=[],
+        toplam=0,
+        aktif=0,
+        yaklasan=0,
+        dolan=0,
+        bugun=0,
+        bugun_bitenler=[],
+        arama="",
+        odemeler=odemeler,
+        toplam_tutar=toplam_tutar,
+        sayfa="odemeler"
+    )
+
+
+@app.route("/yoklama")
+def yoklama_sayfasi():
+    tarih = request.args.get("tarih", date.today().isoformat()).strip()
+
+    try:
+        datetime.strptime(tarih, "%Y-%m-%d")
+    except ValueError:
+        tarih = date.today().isoformat()
+
+    db = get_db()
+
+    uyeler = db.execute("""
+        SELECT id, ad, soyad, telefon
+        FROM uyeler
+        ORDER BY ad COLLATE NOCASE, soyad COLLATE NOCASE
+    """).fetchall()
+
+    kayitlar = db.execute("""
+        SELECT uye_id, geldi
+        FROM yoklamalar
+        WHERE tarih = ?
+    """, (tarih,)).fetchall()
+
+    durumlar = {kayit["uye_id"]: bool(kayit["geldi"]) for kayit in kayitlar}
+
+    yoklama = [
+        dict(uye, geldi=durumlar.get(uye["id"], False))
+        for uye in uyeler
+    ]
+
+    db.close()
+
+    return render_template(
+        "dashboard.html",
+        uyeler=[],
+        toplam=0,
+        aktif=0,
+        yaklasan=0,
+        dolan=0,
+        bugun=0,
+        bugun_bitenler=[],
+        arama="",
+        yoklama=yoklama,
+        yoklama_tarihi=tarih,
+        sayfa="yoklama"
+    )
+
+
+@app.route("/yoklama/kaydet", methods=["POST"])
+def yoklama_kaydet():
+    tarih = request.form.get("tarih", "").strip()
+
+    try:
+        datetime.strptime(tarih, "%Y-%m-%d")
+    except ValueError:
+        return redirect(url_for("yoklama_sayfasi"))
+
+    gelenler = {
+        int(uye_id)
+        for uye_id in request.form.getlist("gelen_uye")
+        if uye_id.isdigit()
+    }
+
+    db = get_db()
+
+    uyeler = db.execute("SELECT id FROM uyeler").fetchall()
+
+    for uye in uyeler:
+        uye_id = uye["id"]
+        geldi = 1 if uye_id in gelenler else 0
+
+        db.execute("""
+            INSERT INTO yoklamalar (uye_id, tarih, geldi)
+            VALUES (?, ?, ?)
+            ON CONFLICT(uye_id, tarih)
+            DO UPDATE SET geldi = excluded.geldi
+        """, (uye_id, tarih, geldi))
+
+    db.commit()
+    db.close()
+
+    return redirect(url_for("yoklama_sayfasi", tarih=tarih))
 
 
 @app.route("/api/uye/<int:uye_id>/odemeler")

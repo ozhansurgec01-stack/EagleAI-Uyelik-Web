@@ -3,137 +3,501 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Üye Takip</title>
+    <title>
+        {% if sayfa == "odemeler" %}Ödemeler{% elif sayfa == "yoklama" %}Yoklama{% elif sayfa == "uyeler" %}Üyeler{% else %}Ana Sayfa{% endif %}
+        · Üye Takip
+    </title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
+
 <body>
 
-<header class="header">
-    <div>
-        <div class="brand">🏋️ ÜYE TAKİP</div>
-        <div class="subtitle">Fitness & Üyelik Yönetim Paneli</div>
-    </div>
-</header>
+<div class="app-shell">
 
-<main class="container">
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-icon">🏋️</div>
+            <div>
+                <strong>ÜYE TAKİP</strong>
+                <span>Yönetim Paneli</span>
+            </div>
+        </div>
 
-    <section class="stats">
-        <div class="stat blue">
-            <span>TOPLAM ÜYE</span>
-            <strong>{{ toplam }}</strong>
-        </div>
-        <div class="stat green">
-            <span>AKTİF ÜYE</span>
-            <strong>{{ aktif }}</strong>
-        </div>
-        <div class="stat orange">
-            <span>YAKLAŞIYOR</span>
-            <strong>{{ yaklasan }}</strong>
-        </div>
-        <div class="stat red">
-            <span>SÜRESİ DOLDU</span>
-            <strong>{{ dolan }}</strong>
-        </div>
-    </section>
+        <nav class="sidebar-nav">
+            <a href="{{ url_for('dashboard') }}"
+               class="nav-item {% if not sayfa or sayfa == 'dashboard' %}active{% endif %}">
+                <span>🏠</span>
+                <span>Ana Sayfa</span>
+            </a>
 
-    <div class="today">
-        🔴 BUGÜN BİTİYOR <b>{{ bugun }}</b>
-    </div>
+            <a href="{{ url_for('uyeler_sayfasi') }}"
+               class="nav-item {% if sayfa == 'uyeler' %}active{% endif %}">
+                <span>👥</span>
+                <span>Üyeler</span>
+            </a>
 
-    <section class="toolbar">
-        <form method="get" class="search">
-            <input name="arama" value="{{ arama }}" placeholder="🔎 Üye ara...">
-            <button type="submit">Ara</button>
+            <a href="{{ url_for('odemeler_sayfasi') }}"
+               class="nav-item {% if sayfa == 'odemeler' %}active{% endif %}">
+                <span>💳</span>
+                <span>Ödemeler</span>
+            </a>
+
+            <a href="{{ url_for('yoklama_sayfasi') }}"
+               class="nav-item {% if sayfa == 'yoklama' %}active{% endif %}">
+                <span>📋</span>
+                <span>Yoklama</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <span>Fitness & Üyelik</span>
+            <strong>Yönetim Sistemi</strong>
+        </div>
+    </aside>
+
+    <main class="main-content">
+
+        <header class="topbar">
+            <div>
+                <h1>
+                    {% if sayfa == "odemeler" %}
+                        Ödemeler
+                    {% elif sayfa == "yoklama" %}
+                        Yoklama
+                    {% elif sayfa == "uyeler" %}
+                        Üyeler
+                    {% else %}
+                        Genel Bakış
+                    {% endif %}
+                </h1>
+
+                <p>
+                    {% if sayfa == "odemeler" %}
+                        Üyelik ödeme kayıtlarını takip edin.
+                    {% elif sayfa == "yoklama" %}
+                        Günlük katılım durumunu yönetin.
+                    {% elif sayfa == "uyeler" %}
+                        Üyelerinizi ve üyelik durumlarını yönetin.
+                    {% else %}
+                        Üyelik sisteminizin genel durumu.
+                    {% endif %}
+                </p>
+            </div>
+
+            {% if not sayfa or sayfa == "dashboard" or sayfa == "uyeler" %}
+            <button class="primary topbar-button"
+                    onclick="document.getElementById('uyeModal').showModal()">
+                ➕ Yeni Üye
+            </button>
+            {% endif %}
+        </header>
+
+
+        {% if not sayfa or sayfa == "dashboard" %}
+
+        <section class="stats">
+            <div class="stat-card stat-blue">
+                <div class="stat-icon">👥</div>
+                <div>
+                    <span>TOPLAM ÜYE</span>
+                    <strong>{{ toplam }}</strong>
+                </div>
+            </div>
+
+            <div class="stat-card stat-green">
+                <div class="stat-icon">✓</div>
+                <div>
+                    <span>AKTİF ÜYE</span>
+                    <strong>{{ aktif }}</strong>
+                </div>
+            </div>
+
+            <div class="stat-card stat-orange">
+                <div class="stat-icon">⏳</div>
+                <div>
+                    <span>YAKLAŞIYOR</span>
+                    <strong>{{ yaklasan }}</strong>
+                </div>
+            </div>
+
+            <div class="stat-card stat-red">
+                <div class="stat-icon">⚠</div>
+                <div>
+                    <span>SÜRESİ DOLAN</span>
+                    <strong>{{ dolan }}</strong>
+                </div>
+            </div>
+        </section>
+
+        <button class="today-alert {% if bugun > 0 %}has-expiring{% endif %}"
+                {% if bugun > 0 %}onclick="document.getElementById('bugunModal').showModal()"{% endif %}>
+            <span class="today-left">
+                <span class="today-dot"></span>
+                <span>BUGÜN BİTİYOR</span>
+            </span>
+            <strong>{{ bugun }}</strong>
+        </button>
+
+        <section class="dashboard-grid">
+
+            <div class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>Son Üyeler</h2>
+                        <p>Sisteme kayıtlı son üyeler</p>
+                    </div>
+                    <a href="{{ url_for('uyeler_sayfasi') }}" class="panel-link">
+                        Tümünü Gör →
+                    </a>
+                </div>
+
+                <div class="mini-list">
+                    {% for uye in uyeler[:5] %}
+                    <div class="mini-member">
+                        <div class="mini-avatar">{{ uye.ad[:1] | upper }}</div>
+                        <div class="mini-info">
+                            <strong>{{ uye.ad }} {{ uye.soyad or "" }}</strong>
+                            <span>{{ uye.telefon or "Telefon yok" }}</span>
+                        </div>
+                        <span class="status {{ uye.durum | replace(' ', '-') }}">
+                            {{ uye.durum }}
+                        </span>
+                    </div>
+                    {% else %}
+                    <div class="empty">Henüz üye bulunmuyor.</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>Hızlı İşlemler</h2>
+                        <p>Sık kullanılan işlemler</p>
+                    </div>
+                </div>
+
+                <div class="quick-actions">
+                    <a href="{{ url_for('uyeler_sayfasi') }}" class="quick-action">
+                        <span>👥</span>
+                        <div>
+                            <strong>Üyeleri Gör</strong>
+                            <small>Üye listesini aç</small>
+                        </div>
+                    </a>
+
+                    <a href="{{ url_for('odemeler_sayfasi') }}" class="quick-action">
+                        <span>💳</span>
+                        <div>
+                            <strong>Ödemeler</strong>
+                            <small>Ödeme kayıtlarını gör</small>
+                        </div>
+                    </a>
+
+                    <a href="{{ url_for('yoklama_sayfasi') }}" class="quick-action">
+                        <span>📋</span>
+                        <div>
+                            <strong>Yoklama</strong>
+                            <small>Günlük katılımı yönet</small>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+        </section>
+
+        {% endif %}
+
+
+        {% if sayfa == "uyeler" %}
+
+        <section class="page-toolbar">
+            <form method="get" action="{{ url_for('uyeler_sayfasi') }}" class="search-form">
+                <input name="arama" value="{{ arama }}" placeholder="🔎 Üye ara...">
+                <button type="submit">Ara</button>
+            </form>
+
+            <button class="dark" onclick="duyuruBilgisi()">📩 SMS Duyuru</button>
+        </section>
+
+        <section class="members">
+            {% for uye in uyeler %}
+            <article class="member-card">
+
+                <div class="member-head">
+                    <div class="avatar">{{ uye.ad[:1] | upper }}</div>
+
+                    <div class="member-name">
+                        <h3>{{ uye.ad }} {{ uye.soyad or "" }}</h3>
+                        <p>{{ uye.telefon or "Telefon yok" }}</p>
+                    </div>
+
+                    <span class="status {{ uye.durum | replace(' ', '-') }}">
+                        {{ uye.durum }}
+                    </span>
+                </div>
+
+                <div class="dates">
+                    <div>
+                        <small>Başlangıç</small>
+                        <b>{{ uye.baslangic or "-" }}</b>
+                    </div>
+                    <div>
+                        <small>Bitiş</small>
+                        <b>{{ uye.bitis or "-" }}</b>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button class="gray"
+                            onclick='duzenleAc({{ uye.id }}, {{ uye.ad|tojson }}, {{ (uye.soyad or "")|tojson }}, {{ (uye.telefon or "")|tojson }}, {{ (uye.notlar or "")|tojson }}, {{ (uye.baslangic or "")|tojson }}, {{ (uye.bitis or "")|tojson }})'>
+                        ✏️ Düzenle
+                    </button>
+
+                    <button class="green-btn"
+                            onclick='yenileAc({{ uye.id }}, {{ (uye.bitis or "")|tojson }})'>
+                        🔄 Yenile
+                    </button>
+
+                    <button class="blue-btn"
+                            onclick='odemeAc({{ uye.id }})'>
+                        💳 Ödeme
+                    </button>
+
+                    <button class="purple"
+                            onclick='gecmisAc({{ uye.id }}, {{ (uye.ad ~ " " ~ (uye.soyad or ""))|tojson }})'>
+                        📜 Geçmiş
+                    </button>
+
+                    {% if uye.telefon %}
+                    <a class="dark action-link" href="sms:{{ uye.telefon }}">
+                        📩 SMS
+                    </a>
+                    {% else %}
+                    <button class="dark" onclick="alert('Bu üyenin telefon numarası yok.')">
+                        📩 SMS
+                    </button>
+                    {% endif %}
+
+                    <form method="post"
+                          action="{{ url_for('uye_sil', uye_id=uye.id) }}"
+                          onsubmit="return confirm('Bu üyeyi, ödeme ve yoklama kayıtlarıyla birlikte silmek istediğinize emin misiniz?')">
+                        <button class="red-btn" type="submit">🗑️ Sil</button>
+                    </form>
+                </div>
+
+            </article>
+            {% else %}
+            <div class="empty">Henüz üye bulunmuyor.</div>
+            {% endfor %}
+        </section>
+
+        {% endif %}
+
+
+        {% if sayfa == "odemeler" %}
+
+        <section class="payment-summary">
+            <div class="summary-card">
+                <span>TOPLAM ÖDEME</span>
+                <strong>{{ "%.2f"|format(toplam_tutar) }} TL</strong>
+            </div>
+
+            <div class="summary-card">
+                <span>ÖDEME KAYDI</span>
+                <strong>{{ odemeler|length }}</strong>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2>Ödeme Kayıtları</h2>
+                    <p>Tüm üyelerin ödeme geçmişi</p>
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Üye</th>
+                        <th>Tarih</th>
+                        <th>Tutar</th>
+                        <th>Ay</th>
+                        <th>Açıklama</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for odeme in odemeler %}
+                    <tr>
+                        <td>
+                            <strong>{{ odeme.ad or "Silinmiş üye" }}
+                                {{ odeme.soyad or "" }}</strong>
+                        </td>
+                        <td>{{ odeme.tarih or "-" }}</td>
+                        <td class="amount">{{ odeme.tutar or "-" }} TL</td>
+                        <td>{{ odeme.ay_sayisi or 1 }}</td>
+                        <td>{{ odeme.aciklama or "-" }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="table-empty">
+                            Henüz ödeme kaydı bulunmuyor.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        {% endif %}
+
+
+        {% if sayfa == "yoklama" %}
+
+        <section class="attendance-toolbar">
+            <form method="get" action="{{ url_for('yoklama_sayfasi') }}">
+                <label for="yoklamaTarih">Tarih</label>
+                <input id="yoklamaTarih"
+                       type="date"
+                       name="tarih"
+                       value="{{ yoklama_tarihi }}">
+                <button class="primary" type="submit">Görüntüle</button>
+            </form>
+        </section>
+
+        <form method="post" action="{{ url_for('yoklama_kaydet') }}">
+
+            <input type="hidden" name="tarih" value="{{ yoklama_tarihi }}">
+
+            <section class="attendance-layout">
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <div>
+                            <h2>Günlük Yoklama</h2>
+                            <p>{{ yoklama_tarihi }} · Gelen üyeleri işaretleyin</p>
+                        </div>
+                    </div>
+
+                    <div class="attendance-list">
+                        {% for uye in yoklama %}
+                        <label class="attendance-row">
+                            <span class="attendance-person">
+                                <span class="mini-avatar">
+                                    {{ uye.ad[:1] | upper }}
+                                </span>
+                                <span>
+                                    <strong>{{ uye.ad }} {{ uye.soyad or "" }}</strong>
+                                    <small>{{ uye.telefon or "Telefon yok" }}</small>
+                                </span>
+                            </span>
+
+                            <span class="attendance-check">
+                                <input type="checkbox"
+                                       name="gelen_uye"
+                                       value="{{ uye.id }}"
+                                       {% if uye.geldi %}checked{% endif %}>
+                                <span class="check-ui"></span>
+                                <span class="check-label">
+                                    {% if uye.geldi %}Geldi{% else %}Gelmedi{% endif %}
+                                </span>
+                            </span>
+                        </label>
+                        {% else %}
+                        <div class="empty">Henüz üye bulunmuyor.</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="attendance-save">
+                        <button class="primary" type="submit">
+                            💾 Yoklamayı Kaydet
+                        </button>
+                    </div>
+                </div>
+
+                <div class="panel absent-panel">
+                    <div class="panel-header">
+                        <div>
+                            <h2>Gelmeyenler</h2>
+                            <p>Seçilen tarihte gelmeyen üyeler</p>
+                        </div>
+                    </div>
+
+                    <div class="absent-list">
+                        {% set ns = namespace(gelmeyen_sayisi=0) %}
+
+                        {% for uye in yoklama %}
+                            {% if not uye.geldi %}
+                                {% set ns.gelmeyen_sayisi = ns.gelmeyen_sayisi + 1 %}
+                                <div class="absent-item">
+                                    <span class="mini-avatar absent-avatar">
+                                        {{ uye.ad[:1] | upper }}
+                                    </span>
+                                    <div>
+                                        <strong>{{ uye.ad }} {{ uye.soyad or "" }}</strong>
+                                        <small>{{ uye.telefon or "Telefon yok" }}</small>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if ns.gelmeyen_sayisi == 0 %}
+                        <div class="all-present">
+                            <span>✓</span>
+                            Herkes geldi.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+            </section>
+
         </form>
 
-        <button class="primary" onclick="document.getElementById('uyeModal').showModal()">
-            ➕ Yeni Üye
-        </button>
+        {% endif %}
 
-        <button class="dark" onclick="duyuruBilgisi()">
-            📩 SMS Duyuru
-        </button>
-    </section>
+    </main>
+</div>
 
-    <section class="members">
-        {% for uye in uyeler %}
-        <article class="member-card">
 
-            <div class="member-head">
-                <div class="avatar">{{ uye.ad[:1] | upper }}</div>
-
-                <div class="member-name">
-                    <h3>{{ uye.ad }} {{ uye.soyad or "" }}</h3>
-                    <p>{{ uye.telefon or "Telefon yok" }}</p>
-                </div>
-
-                <span class="status {{ uye.durum | replace(' ', '-') }}">
-                    {{ uye.durum }}
-                </span>
+<!-- BUGÜN BİTENLER -->
+<dialog id="bugunModal">
+    <div class="modal">
+        <div class="modal-title-row">
+            <div>
+                <span class="modal-kicker">ÜYELİK UYARISI</span>
+                <h2>🔴 Bugün Biten Üyelikler</h2>
             </div>
-
-            <div class="dates">
-                <div>
-                    <small>Başlangıç</small>
-                    <b>{{ uye.baslangic or "-" }}</b>
-                </div>
-                <div>
-                    <small>Bitiş</small>
-                    <b>{{ uye.bitis or "-" }}</b>
-                </div>
-            </div>
-
-            <div class="actions">
-
-                <button class="gray"
-                        onclick='duzenleAc({{ uye.id }}, {{ uye.ad|tojson }}, {{ (uye.soyad or "")|tojson }}, {{ (uye.telefon or "")|tojson }}, {{ (uye.notlar or "")|tojson }}, {{ (uye.baslangic or "")|tojson }}, {{ (uye.bitis or "")|tojson }})'>
-                    ✏️ Düzenle
-                </button>
-
-                <button class="green-btn"
-                        onclick='yenileAc({{ uye.id }}, {{ (uye.bitis or "")|tojson }})'>
-                    🔄 Yenile
-                </button>
-
-                <button class="blue-btn"
-                        onclick='odemeAc({{ uye.id }})'>
-                    💳 Ödeme
-                </button>
-
-                <button class="purple"
-                        onclick='gecmisAc({{ uye.id }}, {{ (uye.ad ~ " " ~ (uye.soyad or ""))|tojson }})'>
-                    📜 Geçmiş
-                </button>
-
-                {% if uye.telefon %}
-                <a class="dark action-link"
-                   href="sms:{{ uye.telefon }}">
-                    📩 SMS
-                </a>
-                {% else %}
-                <button class="dark" onclick="alert('Bu üyenin telefon numarası yok.')">
-                    📩 SMS
-                </button>
-                {% endif %}
-
-                <form method="post"
-                      action="{{ url_for('uye_sil', uye_id=uye.id) }}"
-                      onsubmit="return confirm('Bu üyeyi ve ödeme kayıtlarını silmek istediğinize emin misiniz?')">
-                    <button class="red-btn" type="submit">🗑️ Sil</button>
-                </form>
-
-            </div>
-        </article>
-
-        {% else %}
-        <div class="empty">
-            Henüz üye bulunmuyor.
+            <button class="modal-close" onclick="this.closest('dialog').close()">×</button>
         </div>
-        {% endfor %}
-    </section>
-</main>
+
+        <div class="expiring-list">
+            {% for uye in bugun_bitenler %}
+            <div class="expiring-item">
+                <div class="mini-avatar warning-avatar">
+                    {{ uye.ad[:1] | upper }}
+                </div>
+                <div>
+                    <strong>{{ uye.ad }} {{ uye.soyad or "" }}</strong>
+                    <span>{{ uye.telefon or "Telefon yok" }}</span>
+                </div>
+                <button class="green-btn small-button"
+                        onclick='yenileAc({{ uye.id }}, {{ (uye.bitis or "")|tojson }}); document.getElementById("bugunModal").close();'>
+                    Yenile
+                </button>
+            </div>
+            {% else %}
+            <div class="empty-history">Bugün üyeliği biten üye yok.</div>
+            {% endfor %}
+        </div>
+    </div>
+</dialog>
 
 
+<!-- YENİ ÜYE -->
 <dialog id="uyeModal">
     <form method="post" action="{{ url_for('uye_yeni') }}" class="modal">
         <h2>Yeni Üye</h2>
@@ -153,6 +517,7 @@
 </dialog>
 
 
+<!-- DÜZENLE -->
 <dialog id="duzenleModal">
     <form method="post" id="duzenleForm" class="modal">
         <h2>Üye Düzenle</h2>
@@ -172,6 +537,7 @@
 </dialog>
 
 
+<!-- YENİLE -->
 <dialog id="yenileModal">
     <form method="post" id="yenileForm" class="modal">
         <h2>Üyelik Yenile</h2>
@@ -187,12 +553,17 @@
 </dialog>
 
 
+<!-- ÖDEME -->
 <dialog id="odemeModal">
     <form method="post" id="odemeForm" class="modal">
         <h2>💳 Ödeme Ekle</h2>
 
         <input name="tutar" placeholder="Tutar (TL)">
-        <input name="ay_sayisi" type="number" min="1" value="1" placeholder="Üyelik Süresi (Ay)">
+        <input name="ay_sayisi"
+               type="number"
+               min="1"
+               value="1"
+               placeholder="Üyelik Süresi (Ay)">
         <input name="tarih" type="date">
         <input name="aciklama" placeholder="Açıklama">
 
@@ -204,9 +575,17 @@
 </dialog>
 
 
+<!-- ÖDEME GEÇMİŞİ -->
 <dialog id="gecmisModal">
     <div class="modal">
-        <h2>📜 Ödeme Geçmişi</h2>
+        <div class="modal-title-row">
+            <div>
+                <span class="modal-kicker">ÖDEME KAYITLARI</span>
+                <h2>📜 Ödeme Geçmişi</h2>
+            </div>
+            <button class="modal-close" onclick="this.closest('dialog').close()">×</button>
+        </div>
+
         <div id="gecmisIcerik" class="history">
             Yükleniyor...
         </div>
@@ -253,7 +632,9 @@ async function gecmisAc(id, adSoyad) {
     const alan = document.getElementById("gecmisIcerik");
 
     alan.innerHTML = "<p>Yükleniyor...</p>";
-    dialog.querySelector("h2").textContent = `📜 ${adSoyad} - Ödeme Geçmişi`;
+    dialog.querySelector("h2").textContent =
+        `📜 ${adSoyad} - Ödeme Geçmişi`;
+
     dialog.showModal();
 
     try {
@@ -266,7 +647,8 @@ async function gecmisAc(id, adSoyad) {
         const odemeler = await response.json();
 
         if (!odemeler.length) {
-            alan.innerHTML = '<div class="empty-history">Bu üyeye ait ödeme kaydı yok.</div>';
+            alan.innerHTML =
+                '<div class="empty-history">Bu üyeye ait ödeme kaydı yok.</div>';
             return;
         }
 
@@ -274,9 +656,11 @@ async function gecmisAc(id, adSoyad) {
             <div class="history-item">
                 <strong>Tutar: ${escapeHtml(o.tutar || "-")} TL</strong>
                 <span>Tarih: ${escapeHtml(o.tarih || "-")}</span>
+                <span>Ay: ${escapeHtml(o.ay_sayisi || "1")}</span>
                 <span>${escapeHtml(o.aciklama || "")}</span>
             </div>
         `).join("");
+
     } catch (error) {
         alan.innerHTML = "<p>Ödeme geçmişi yüklenemedi.</p>";
     }
