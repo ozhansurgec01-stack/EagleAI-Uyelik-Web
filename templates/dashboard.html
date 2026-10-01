@@ -812,6 +812,22 @@ function duyuruBilgisi() {
                 block: "center"
             });
         }
+
+        // Tum POST formlarinda cift gonderimi engelle.
+        document.querySelectorAll('form[method="post"]').forEach(function (form) {
+            form.addEventListener("submit", function (event) {
+                if (form.dataset.submitting === "1") {
+                    event.preventDefault();
+                    return;
+                }
+
+                form.dataset.submitting = "1";
+
+                form.querySelectorAll('button[type="submit"]').forEach(function (button) {
+                    button.disabled = true;
+                });
+            });
+        });
     });
 </script>
 
