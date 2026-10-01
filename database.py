@@ -1,11 +1,26 @@
+import os
 import sqlite3
 from pathlib import Path
+
+import turso_serverless
+
 
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "data" / "uye_takip.db"
 
+TURSO_DATABASE_URL = os.environ.get("TURSO_DATABASE_URL")
+TURSO_AUTH_TOKEN = os.environ.get("TURSO_AUTH_TOKEN")
+
 
 def get_db():
+    if TURSO_DATABASE_URL and TURSO_AUTH_TOKEN:
+        db = turso_serverless.connect(
+            TURSO_DATABASE_URL,
+            auth_token=TURSO_AUTH_TOKEN,
+        )
+        db.row_factory = turso_serverless.Row
+        return db
+
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     db = sqlite3.connect(DB_PATH)
     db.row_factory = sqlite3.Row
