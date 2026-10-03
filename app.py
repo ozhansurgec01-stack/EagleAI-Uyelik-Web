@@ -150,13 +150,31 @@ def uye_duzenle(uye_id):
 @app.route("/uye/<int:uye_id>/yenile", methods=["POST"])
 def uye_yenile(uye_id):
     yeni_bitis = request.form.get("bitis", "").strip()
+    tutar = request.form.get("tutar", "").strip()
+    tarih = request.form.get("tarih", "").strip()
+    aciklama = request.form.get("aciklama", "").strip()
+
+    try:
+        ay = int(request.form.get("ay_sayisi", "1"))
+    except ValueError:
+        ay = 1
+
+    if ay < 1:
+        ay = 1
 
     db = get_db()
+
     db.execute("""
         UPDATE uyeler
         SET bitis = ?
         WHERE id = ?
     """, (yeni_bitis, uye_id))
+
+    db.execute("""
+        INSERT INTO odemeler
+        (uye_id, tutar, tarih, aciklama, ay_sayisi)
+        VALUES (?, ?, ?, ?, ?)
+    """, (uye_id, tutar, tarih, aciklama, ay))
 
     db.commit()
     db.close()

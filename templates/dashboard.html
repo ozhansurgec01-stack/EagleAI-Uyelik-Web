@@ -633,9 +633,22 @@
         <label>Yeni bitiş tarihi</label>
         <input id="yenileBitis" name="bitis" type="date" required>
 
+        <input name="tutar" placeholder="Tutar (TL)" required>
+
+        <input name="ay_sayisi"
+               type="number"
+               min="1"
+               value="1"
+               placeholder="Üyelik Süresi (Ay)"
+               required>
+
+        <input id="yenileTarih" name="tarih" type="date" required>
+
+        <input name="aciklama" placeholder="Açıklama">
+
         <div class="modal-actions">
             <button type="button" onclick="this.closest('dialog').close()">İptal</button>
-            <button class="green-btn" type="submit">🔄 Yenile</button>
+            <button class="green-btn" type="submit">🔄 Yenile ve Kaydet</button>
         </div>
     </form>
 </dialog>
@@ -807,8 +820,16 @@ function duzenleAc(id, ad, soyad, telefon, notlar, baslangic, bitis) {
 }
 
 function yenileAc(id, bitis) {
-    document.getElementById("yenileForm").action = `/uye/${id}/yenile`;
+    const form = document.getElementById("yenileForm");
+
+    form.action = `/uye/${id}/yenile`;
+    form.reset();
+
     document.getElementById("yenileBitis").value = bitis;
+
+    const tarih = document.getElementById("yenileTarih");
+    tarih.value = new Date().toISOString().slice(0, 10);
+
     document.getElementById("yenileModal").showModal();
 }
 
