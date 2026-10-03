@@ -1,4 +1,5 @@
 from datetime import date, datetime
+import os
 from calendar import monthrange
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from database import get_db, init_db
@@ -608,6 +609,287 @@ def uye_odemeler(uye_id):
     db.close()
 
     return jsonify([dict(o) for o in odemeler])
+
+
+
+SMS_WORKER_TOKEN = os.environ.get("SMS_WORKER_TOKEN", "").strip()
+
+
+def sms_worker_yetkili():
+    if not SMS_WORKER_TOKEN:
+        return False
+
+    auth = request.headers.get("Authorization", "")
+    return auth == f"Bearer {SMS_WORKER_TOKEN}"
+
+
+def sms_mesaj_dogrula(mesaj):
+    mesaj = str(mesaj or "").strip()
+
+    if not mesaj:
+        return None, "Mesaj boş olamaz."
+
+    if len(mesaj) > 1000:
+        return None, "Mesaj en fazla 1000 karakter olabilir."
+
+    return mesaj, None
+
+
+def sms_telefon_dogrula(telefon):
+    telefon = str(telefon or "").strip()
+
+    if not telefon:
+        return None
+
+    return telefon
+
+
+def sms_job_ekle(db, uye_id, telefon, mesaj, simdi):
+    db.execute("""
+        INSERT INTO sms_jobs
+        (uye_id, phone, message, status, attempts, created_at)
+        VALUES (?, ?, ?, 'pending', 0, ?)
+    """, (uye_id, telefon, mesaj, simdi))
+
+
+@app.route("/api/sms/gonder", methods=["POST"])
+def sms_gonder():
+    data = request.get_json(silent=True) or {}
+
+    try:
+        uye_id = int(data.get("uye_id"))
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "mesaj": "Geçersiz üye."}), 400
+
+    mesaj, hata = sms_mesaj_dogrula(data.get("mesaj"))
+    if hata:
+        return jsonify({"ok": False, "mesaj": hata}), 400
+
+    db = get_db()
+
+    uye = db.execute("""
+        SELECT id, telefon
+        FROM uyeler
+        WHERE id = ?
+    """, (uye_id,)).fetchone()
+
+    if not uye:
+        db.close()
+        return jsonify({"ok": False, "mesaj": "Üye bulunamadı."}), 404
+
+    telefon = sms_telefon_dogrula(uye["telefon"])
+
+    if not telefon:
+        db.close()
+        return jsonify({
+            "ok": False,
+            "mesaj": "Üyenin telefon numarası kayıtlı değil."
+        }), 400
+
+    simdi = datetime.utcnow().isoformat(timespec="seconds") + "Z"
+    sms_job_ekle(db, uye_id, telefon, mesaj, simdi)
+
+    db.commit()
+    db.close()
+
+    return jsonify({
+        "ok": True,
+        "kuyruga_alindi": 1,
+        "mesaj": "SMS gönderim kuyruğuna alındı."
+    })
+
+
+@app.route("/api/sms/duyuru", methods=["POST"])
+def sms_duyuru():
+    data = request.get_json(silent=True) or {}
+    uye_ids = data.get("uye_ids")
+
+    if not isinstance(uye_ids, list) or not uye_ids:
+        return jsonify({
+            "ok": False,
+            "mesaj": "En az bir üye seçmelisiniz."
+        }), 400
+
+    mesaj, hata = sms_mesaj_dogrula(data.get("mesaj"))
+    if hata:
+        return jsonify({"ok": False, "mesaj": hata}), 400
+
+    temiz_ids = []
+
+    for uye_id in uye_ids:
+        try:
+            uye_id = int(uye_id)
+        except (TypeError, ValueError):
+            continue
+
+        if uye_id > 0 and uye_id not in temiz_ids:
+            temiz_ids.append(uye_id)
+
+    if not temiz_ids:
+        return jsonify({
+            "ok": False,
+            "mesaj": "Geçerli üye seçimi bulunamadı."
+        }), 400
+
+    db = get_db()
+    placeholders = ",".join("?" for _ in temiz_ids)
+
+    uyeler = db.execute(f"""
+        SELECT id, telefon
+        FROM uyeler
+        WHERE id IN ({placeholders})
+    """, tuple(temiz_ids)).fetchall()
+
+    simdi = datetime.utcnow().isoformat(timespec="seconds") + "Z"
+    kuyruga_alinan = 0
+    telefonsuz = 0
+
+    for uye in uyeler:
+        telefon = sms_telefon_dogrula(uye["telefon"])
+
+        if not telefon:
+            telefonsuz += 1
+            continue
+
+        sms_job_ekle(db, uye["id"], telefon, mesaj, simdi)
+        kuyruga_alinan += 1
+
+    db.commit()
+    db.close()
+
+    return jsonify({
+        "ok": True,
+        "kuyruga_alindi": kuyruga_alinan,
+        "telefonsuz": telefonsuz,
+        "mesaj": f"{kuyruga_alinan} SMS gönderim kuyruğuna alındı."
+    })
+
+
+@app.route("/api/sms/worker/next", methods=["GET"])
+def sms_worker_next():
+    if not sms_worker_yetkili():
+        return jsonify({
+            "ok": False,
+            "mesaj": "Yetkisiz worker."
+        }), 401
+
+    db = get_db()
+    simdi = datetime.utcnow().isoformat(timespec="seconds") + "Z"
+
+    db.execute("""
+        UPDATE sms_jobs
+        SET status = 'pending',
+            locked_at = NULL
+        WHERE status = 'processing'
+          AND locked_at < datetime('now', '-5 minutes')
+    """)
+
+    job = db.execute("""
+        SELECT id, uye_id, phone, message, attempts
+        FROM sms_jobs
+        WHERE status = 'pending'
+        ORDER BY id ASC
+        LIMIT 1
+    """).fetchone()
+
+    if not job:
+        db.commit()
+        db.close()
+        return jsonify({
+            "ok": True,
+            "job": None
+        })
+
+    db.execute("""
+        UPDATE sms_jobs
+        SET status = 'processing',
+            attempts = attempts + 1,
+            locked_at = ?
+        WHERE id = ?
+          AND status = 'pending'
+    """, (simdi, job["id"]))
+
+    db.commit()
+
+    claimed = db.execute("""
+        SELECT id, uye_id, phone, message, attempts
+        FROM sms_jobs
+        WHERE id = ?
+          AND status = 'processing'
+    """, (job["id"],)).fetchone()
+
+    db.close()
+
+    if not claimed:
+        return jsonify({
+            "ok": True,
+            "job": None
+        })
+
+    return jsonify({
+        "ok": True,
+        "job": dict(claimed)
+    })
+
+
+@app.route("/api/sms/worker/result", methods=["POST"])
+def sms_worker_result():
+    if not sms_worker_yetkili():
+        return jsonify({
+            "ok": False,
+            "mesaj": "Yetkisiz worker."
+        }), 401
+
+    data = request.get_json(silent=True) or {}
+
+    try:
+        job_id = int(data.get("job_id"))
+    except (TypeError, ValueError):
+        return jsonify({
+            "ok": False,
+            "mesaj": "Geçersiz job_id."
+        }), 400
+
+    status = str(data.get("status", "")).strip().lower()
+
+    if status not in ("sent", "failed"):
+        return jsonify({
+            "ok": False,
+            "mesaj": "Geçersiz sonuç durumu."
+        }), 400
+
+    hata = str(data.get("error") or "").strip()
+
+    if len(hata) > 1000:
+        hata = hata[:1000]
+
+    db = get_db()
+
+    if status == "sent":
+        db.execute("""
+            UPDATE sms_jobs
+            SET status = 'sent',
+                sent_at = ?,
+                locked_at = NULL,
+                error = NULL
+            WHERE id = ?
+        """, (
+            datetime.utcnow().isoformat(timespec="seconds") + "Z",
+            job_id
+        ))
+    else:
+        db.execute("""
+            UPDATE sms_jobs
+            SET status = 'failed',
+                locked_at = NULL,
+                error = ?
+            WHERE id = ?
+        """, (hata or "SMS gönderilemedi.", job_id))
+
+    db.commit()
+    db.close()
+
+    return jsonify({"ok": True})
 
 
 if __name__ == "__main__":

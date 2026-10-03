@@ -75,6 +75,26 @@ def init_db():
     """)
 
     db.execute("""
+        CREATE TABLE IF NOT EXISTS sms_jobs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            uye_id INTEGER,
+            phone TEXT NOT NULL,
+            message TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            attempts INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL,
+            locked_at TEXT,
+            sent_at TEXT,
+            error TEXT
+        )
+    """)
+
+    db.execute("""
+        CREATE INDEX IF NOT EXISTS idx_sms_jobs_status_created
+        ON sms_jobs (status, created_at)
+    """)
+
+    db.execute("""
         CREATE TABLE IF NOT EXISTS yoklamalar (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             uye_id INTEGER NOT NULL,

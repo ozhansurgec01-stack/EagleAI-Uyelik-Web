@@ -222,7 +222,7 @@
                 <button type="submit">Ara</button>
             </form>
 
-            <button class="dark" onclick="duyuruBilgisi()">📩 SMS Duyuru</button>
+            <button class="dark" onclick="smsDuyuruAc()">📩 SMS Duyuru</button>
         </section>
 
         <section class="members">
@@ -283,9 +283,10 @@
                     </button>
 
                     {% if uye.telefon %}
-                    <a class="dark action-link" href="sms:{{ uye.telefon }}">
+                    <button class="dark"
+                            onclick='smsUyeAc({{ uye.id }}, {{ (uye.ad ~ " " ~ (uye.soyad or ""))|tojson }}, {{ uye.telefon|tojson }})'>
                         📩 SMS
-                    </a>
+                    </button>
                     {% else %}
                     <button class="dark" onclick="alert('Bu üyenin telefon numarası yok.')">
                         📩 SMS
@@ -693,6 +694,85 @@
 </dialog>
 
 <!-- ÖDEME GEÇMİŞİ -->
+<dialog id="smsUyeModal">
+    <div class="modal">
+        <h2>📩 Üyeye SMS</h2>
+
+        <p><strong>Alıcı</strong></p>
+        <p id="smsUyeAd">-</p>
+        <p id="smsUyeTelefon">-</p>
+
+        <textarea id="smsUyeMesaj"
+                  placeholder="Mesajınızı yazın..."
+                  rows="5"></textarea>
+
+        <input id="smsUyeIdInput" type="hidden">
+
+        <div class="modal-actions">
+            <button type="button" onclick="this.closest('dialog').close()">İptal</button>
+            <button class="dark" type="button" onclick="smsUyeGonder()">📩 SMS Gönder</button>
+        </div>
+    </div>
+</dialog>
+
+<dialog id="smsDuyuruModal">
+    <div class="modal">
+        <h2>📩 SMS Duyuru</h2>
+
+        <p>
+            Telefon numarası kayıtlı üyeler:
+            <strong>{{ uyeler | selectattr("telefon") | list | length }}</strong>
+        </p>
+
+        <div class="modal-actions">
+            <button type="button" onclick="smsDuyuruTumunuSec(true)">
+                ☑️ Tümünü Seç
+            </button>
+            <button type="button" onclick="smsDuyuruTumunuSec(false)">
+                ☐ Seçimi Kaldır
+            </button>
+        </div>
+
+        <div class="history">
+            {% for uye in uyeler %}
+                {% if uye.telefon %}
+                <label class="history-item" style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                    <input
+                        type="checkbox"
+                        class="sms-duyuru-secim"
+                        value="{{ uye.id }}"
+                        data-telefon="{{ uye.telefon }}"
+                        onchange="smsDuyuruSecimGuncelle()">
+                    <span style="flex:1;">
+                        <strong>{{ uye.ad }} {{ uye.soyad or "" }}</strong><br>
+                        <span>{{ uye.telefon }}</span>
+                    </span>
+                </label>
+                {% endif %}
+            {% else %}
+                <p>Telefon numarası kayıtlı üye bulunmuyor.</p>
+            {% endfor %}
+        </div>
+
+        <p>
+            Seçilen alıcı:
+            <strong id="smsDuyuruSeciliSayi">0</strong>
+        </p>
+
+        <textarea id="smsDuyuruMesaj"
+                  placeholder="Duyuru mesajınızı yazın..."
+                  rows="5"></textarea>
+
+        <div class="modal-actions">
+            <button type="button" onclick="this.closest('dialog').close()">İptal</button>
+            <button class="dark" type="button" onclick="smsDuyuruGonder()">
+                📩 Gönder
+            </button>
+        </div>
+    </div>
+</dialog>
+
+
 <dialog id="gecmisModal">
     <div class="modal">
         <div class="modal-title-row">
@@ -801,8 +881,117 @@ function odemeDuzenleAc(id, tutar, tarih, ay, aciklama) {
     document.getElementById("odemeDuzenleModal").showModal();
 }
 
-function duyuruBilgisi() {
-    alert("SMS Duyuru için toplu mesaj akışı bir sonraki adımda eklenecek.");
+function smsUyeAc(id, adSoyad, telefon) {
+    const dialog = document.getElementById("smsUyeModal");
+    document.getElementById("smsUyeAd").textContent = adSoyad;
+    document.getElementById("smsUyeTelefon").textContent = telefon;
+    document.getElementById("smsUyeIdInput").value = id;
+    document.getElementById("smsUyeMesaj").value = "";
+    dialog.showModal();
+}
+
+async function smsUyeGonder() {
+    const uyeId = document.getElementById("smsUyeIdInput").value.trim();
+    const mesaj = document.getElementById("smsUyeMesaj").value.trim();
+
+    if (!uyeId) {
+        alert("Üye bilgisi bulunamadı.");
+        return;
+    }
+
+    if (!mesaj) {
+        alert("Lütfen mesajınızı yazın.");
+        return;
+    }
+
+    try {
+        const response = await fetch("/api/sms/gonder", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({uye_id: Number(uyeId), mesaj: mesaj})
+        });
+        const data = await response.json();
+
+        if (!response.ok || !data.ok) {
+            alert(data.mesaj || "SMS kuyruğa alınamadı.");
+            return;
+        }
+
+        document.getElementById("smsUyeModal").close();
+        document.getElementById("smsUyeMesaj").value = "";
+        alert("SMS gönderim kuyruğuna alındı.");
+    } catch (error) {
+        console.error(error);
+        alert("SMS servisine bağlanılamadı.");
+    }
+}
+
+function smsDuyuruAc() {
+    document.getElementById("smsDuyuruMesaj").value = "";
+    document.querySelectorAll(".sms-duyuru-secim").forEach(function (checkbox) {
+        checkbox.checked = false;
+    });
+    smsDuyuruSecimGuncelle();
+    document.getElementById("smsDuyuruModal").showModal();
+}
+
+function smsDuyuruTumunuSec(sec) {
+    document.querySelectorAll(".sms-duyuru-secim").forEach(function (checkbox) {
+        checkbox.checked = sec;
+    });
+    smsDuyuruSecimGuncelle();
+}
+
+function smsDuyuruSecimGuncelle() {
+    const secilenler = document.querySelectorAll(".sms-duyuru-secim:checked");
+    document.getElementById("smsDuyuruSeciliSayi").textContent = secilenler.length;
+}
+
+async function smsDuyuruGonder() {
+    const secilenler = Array.from(document.querySelectorAll(".sms-duyuru-secim:checked"));
+    const mesaj = document.getElementById("smsDuyuruMesaj").value.trim();
+
+    if (!secilenler.length) {
+        alert("Lütfen en az bir üye seçin.");
+        return;
+    }
+
+    if (!mesaj) {
+        alert("Lütfen duyuru mesajınızı yazın.");
+        return;
+    }
+
+    const uyeIds = secilenler.map(function (checkbox) {
+        return Number(checkbox.value);
+    });
+
+    try {
+        const response = await fetch("/api/sms/duyuru", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({uye_ids: uyeIds, mesaj: mesaj})
+        });
+        const data = await response.json();
+
+        if (!response.ok || !data.ok) {
+            alert(data.mesaj || "SMS duyurusu kuyruğa alınamadı.");
+            return;
+        }
+
+        document.getElementById("smsDuyuruModal").close();
+        document.getElementById("smsDuyuruMesaj").value = "";
+
+        alert(
+            data.kuyruga_alindi +
+            " SMS gönderim kuyruğuna alındı." +
+            (data.telefonsuz
+                ? "\n" + data.telefonsuz + " üyenin telefon numarası yok."
+                : "")
+        );
+    } catch (error) {
+        console.error(error);
+        alert("SMS servisine bağlanılamadı.");
+    }
 }
     document.addEventListener("DOMContentLoaded", function () {
         const selected = document.querySelector(".selected-member");

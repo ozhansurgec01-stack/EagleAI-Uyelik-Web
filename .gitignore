@@ -2,3 +2,7 @@ data/*.db
 __pycache__/
 *.py[cod]
 *.log
+
+# SMS worker local secrets
+.sms_worker.env
+.sms_worker_token
