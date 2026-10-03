@@ -649,7 +649,7 @@
 
         <input id="yenileTarih" name="tarih" type="date" required>
 
-        <input name="aciklama" placeholder="Açıklama">
+        <input id="yenileAciklama" name="aciklama" placeholder="Açıklama">
 
         <div class="modal-actions">
             <button type="button" onclick="this.closest('dialog').close()">İptal</button>
@@ -829,8 +829,13 @@ let yenileAylikUcret = 0;
 function yenileTutarHesapla() {
     const ayInput = document.getElementById("yenileAy");
     const tutarInput = document.getElementById("yenileTutar");
+    const aciklamaInput = document.getElementById("yenileAciklama");
 
     const ay = parseInt(ayInput.value, 10);
+
+    if (Number.isInteger(ay) && ay >= 1) {
+        aciklamaInput.value = `${ay} ay üyelik`;
+    }
 
     if (yenileAylikUcret > 0 && Number.isInteger(ay) && ay >= 1) {
         tutarInput.value = (yenileAylikUcret * ay).toFixed(2);
