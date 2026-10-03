@@ -825,6 +825,36 @@ function duzenleAc(id, ad, soyad, telefon, notlar, baslangic, bitis) {
 }
 
 let yenileAylikUcret = 0;
+let yenileBaslangicBitis = "";
+
+function yenileBitisHesapla() {
+    const bitisInput = document.getElementById("yenileBitis");
+    const ayInput = document.getElementById("yenileAy");
+    const ay = parseInt(ayInput.value, 10);
+
+    if (!yenileBaslangicBitis || !Number.isInteger(ay) || ay < 1) {
+        return;
+    }
+
+    const [yil, ayNo, gun] = yenileBaslangicBitis.split("-").map(Number);
+    if (!yil || !ayNo || !gun) {
+        return;
+    }
+
+    const tarih = new Date(yil, ayNo - 1, gun);
+    tarih.setMonth(tarih.getMonth() + ay);
+
+    // Ay sonlarında JavaScript taşmasını engelle.
+    if (tarih.getDate() !== gun) {
+        tarih.setDate(0);
+    }
+
+    const sonucYil = tarih.getFullYear();
+    const sonucAy = String(tarih.getMonth() + 1).padStart(2, "0");
+    const sonucGun = String(tarih.getDate()).padStart(2, "0");
+
+    bitisInput.value = `${sonucYil}-${sonucAy}-${sonucGun}`;
+}
 
 function yenileTutarHesapla() {
     const ayInput = document.getElementById("yenileAy");
@@ -835,6 +865,7 @@ function yenileTutarHesapla() {
 
     if (Number.isInteger(ay) && ay >= 1) {
         aciklamaInput.value = `${ay} ay üyelik`;
+        yenileBitisHesapla();
     }
 
     if (yenileAylikUcret > 0 && Number.isInteger(ay) && ay >= 1) {
@@ -849,6 +880,7 @@ async function yenileAc(id, bitis) {
     form.reset();
 
     yenileAylikUcret = 0;
+    yenileBaslangicBitis = bitis;
 
     document.getElementById("yenileBitis").value = bitis;
 
