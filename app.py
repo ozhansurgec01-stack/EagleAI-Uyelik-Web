@@ -559,6 +559,16 @@ def yoklama_sayfasi():
         for uye in uyeler
     ]
 
+    yoklama_gecmisi = db.execute("""
+        SELECT
+            tarih,
+            SUM(CASE WHEN geldi = 1 THEN 1 ELSE 0 END) AS gelen_sayisi,
+            COUNT(*) AS kayit_sayisi
+        FROM yoklamalar
+        GROUP BY tarih
+        ORDER BY tarih DESC
+    """).fetchall()
+
     db.close()
 
     return render_template(
@@ -573,6 +583,7 @@ def yoklama_sayfasi():
         arama="",
         yoklama=yoklama,
         yoklama_tarihi=tarih,
+        yoklama_gecmisi=yoklama_gecmisi,
         sayfa="yoklama"
     )
 
@@ -606,6 +617,28 @@ def yoklama_kaydet():
             ON CONFLICT(uye_id, tarih)
             DO UPDATE SET geldi = excluded.geldi
         """, (uye_id, tarih, geldi))
+
+    db.commit()
+    db.close()
+
+    return redirect(url_for("yoklama_sayfasi", tarih=tarih))
+
+
+@app.route("/yoklama/temizle", methods=["POST"])
+def yoklama_temizle():
+    tarih = request.form.get("tarih", "").strip()
+
+    try:
+        datetime.strptime(tarih, "%Y-%m-%d")
+    except ValueError:
+        return redirect(url_for("yoklama_sayfasi"))
+
+    db = get_db()
+
+    db.execute("""
+        DELETE FROM yoklamalar
+        WHERE tarih = ?
+    """, (tarih,))
 
     db.commit()
     db.close()

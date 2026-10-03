@@ -1045,6 +1045,85 @@ th {
     color: #dc2626;
 }
 
+/* ATTENDANCE HISTORY */
+
+.attendance-history {
+    max-width: 1350px;
+    margin: 18px auto 0;
+}
+
+.attendance-history-list {
+    padding: 4px 20px 10px;
+}
+
+.attendance-history-row {
+    min-height: 66px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    border-bottom: 1px solid #edf0f4;
+}
+
+.attendance-history-row:last-child {
+    border-bottom: 0;
+}
+
+.attendance-history-date strong,
+.attendance-history-date small {
+    display: block;
+}
+
+.attendance-history-date strong {
+    font-size: 13px;
+}
+
+.attendance-history-date small {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 10px;
+}
+
+.attendance-history-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.attendance-history-actions form {
+    margin: 0;
+}
+
+.secondary-button,
+.danger-button {
+    min-height: 36px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: white;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 800;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.secondary-button {
+    color: var(--text);
+}
+
+.danger-button {
+    color: #dc2626;
+    border-color: #fecaca;
+}
+
+.attendance-history-empty {
+    padding: 24px 10px;
+    color: var(--muted);
+    text-align: center;
+    font-size: 12px;
+}
+
 .all-present {
     padding: 30px 10px;
     text-align: center;
@@ -1349,6 +1428,22 @@ dialog::backdrop {
 
     .attendance-toolbar button {
         width: 100%;
+    }
+
+    .attendance-history-row {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 12px 0;
+    }
+
+    .attendance-history-actions {
+        width: 100%;
+    }
+
+    .attendance-history-actions .secondary-button,
+    .attendance-history-actions .danger-button {
+        flex: 1;
+        text-align: center;
     }
 
     .attendance-row {

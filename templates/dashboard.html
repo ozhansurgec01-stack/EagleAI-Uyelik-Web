@@ -545,6 +545,46 @@
 
         </form>
 
+        <section class="panel attendance-history">
+            <div class="panel-header">
+                <div>
+                    <h2>Yoklama Geçmişi</h2>
+                    <p>Kayıtlı günleri görüntüleyin, düzenleyin veya yalnızca o günün yoklamasını temizleyin.</p>
+                </div>
+            </div>
+
+            <div class="attendance-history-list">
+                {% for gun in yoklama_gecmisi %}
+                <div class="attendance-history-row">
+                    <div class="attendance-history-date">
+                        <strong>{{ gun.tarih }}</strong>
+                        <small>{{ gun.gelen_sayisi or 0 }} üye geldi · {{ gun.kayit_sayisi or 0 }} kayıt</small>
+                    </div>
+
+                    <div class="attendance-history-actions">
+                        <a class="secondary-button"
+                           href="{{ url_for('yoklama_sayfasi', tarih=gun.tarih) }}">
+                            ✏️ Düzenle
+                        </a>
+
+                        <form method="post"
+                              action="{{ url_for('yoklama_temizle') }}"
+                              onsubmit="return confirm('{{ gun.tarih }} tarihindeki yoklama kayıtları temizlensin mi? Üye ve ödeme kayıtları silinmez.');">
+                            <input type="hidden" name="tarih" value="{{ gun.tarih }}">
+                            <button class="danger-button" type="submit">
+                                🧹 Temizle
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% else %}
+                <div class="attendance-history-empty">
+                    Henüz kayıtlı yoklama günü bulunmuyor.
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
         {% endif %}
 
     </main>
