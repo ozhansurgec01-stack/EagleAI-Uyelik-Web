@@ -633,9 +633,14 @@
         <label>Yeni bitiş tarihi</label>
         <input id="yenileBitis" name="bitis" type="date" required>
 
-        <input name="tutar" placeholder="Tutar (TL)" required>
+        <input id="yenileTutar"
+               name="tutar"
+               inputmode="decimal"
+               placeholder="Tutar (TL)"
+               required>
 
-        <input name="ay_sayisi"
+        <input id="yenileAy"
+               name="ay_sayisi"
                type="number"
                min="1"
                value="1"
@@ -819,19 +824,67 @@ function duzenleAc(id, ad, soyad, telefon, notlar, baslangic, bitis) {
     document.getElementById("duzenleModal").showModal();
 }
 
-function yenileAc(id, bitis) {
+let yenileAylikUcret = 0;
+
+function yenileTutarHesapla() {
+    const ayInput = document.getElementById("yenileAy");
+    const tutarInput = document.getElementById("yenileTutar");
+
+    const ay = parseInt(ayInput.value, 10);
+
+    if (yenileAylikUcret > 0 && Number.isInteger(ay) && ay >= 1) {
+        tutarInput.value = (yenileAylikUcret * ay).toFixed(2);
+    }
+}
+
+async function yenileAc(id, bitis) {
     const form = document.getElementById("yenileForm");
 
     form.action = `/uye/${id}/yenile`;
     form.reset();
+
+    yenileAylikUcret = 0;
 
     document.getElementById("yenileBitis").value = bitis;
 
     const tarih = document.getElementById("yenileTarih");
     tarih.value = new Date().toISOString().slice(0, 10);
 
+    const ayInput = document.getElementById("yenileAy");
+    const tutarInput = document.getElementById("yenileTutar");
+
+    try {
+        const response = await fetch(`/api/uye/${id}/odemeler`);
+        if (response.ok) {
+            const odemeler = await response.json();
+
+            for (const odeme of odemeler) {
+                const tutar = parseFloat(
+                    String(odeme.tutar || "").replace(",", ".")
+                );
+                const ay = parseInt(odeme.ay_sayisi || 1, 10);
+
+                if (Number.isFinite(tutar) && Number.isInteger(ay) && ay >= 1) {
+                    const aylik = tutar / ay;
+
+                    if (aylik > 0) {
+                        yenileAylikUcret = aylik;
+                        break;
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Yenileme aylik ucret okunamadi:", e);
+    }
+
+    ayInput.value = 1;
+    yenileTutarHesapla();
+
     document.getElementById("yenileModal").showModal();
 }
+
+document.getElementById("yenileAy")?.addEventListener("input", yenileTutarHesapla);
 
 function odemeAc(id) {
     const form = document.getElementById("odemeForm");
