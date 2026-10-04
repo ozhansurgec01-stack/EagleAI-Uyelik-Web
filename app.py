@@ -377,6 +377,74 @@ def program_ders_ekle():
     return redirect(url_for("program_sayfasi"))
 
 
+@app.route("/program/ders/<int:ders_id>/duzenle", methods=["POST"])
+def program_ders_duzenle(ders_id):
+    ders_adi = request.form.get("ders_adi", "").strip()
+    gun = request.form.get("gun", "").strip()
+    baslangic_saati = request.form.get("baslangic_saati", "").strip()
+    sure_dakika = request.form.get("sure_dakika", "").strip()
+    egitmen = request.form.get("egitmen", "").strip()
+
+    gunler = {
+        "Pazartesi",
+        "Salı",
+        "Çarşamba",
+        "Perşembe",
+        "Cuma",
+        "Cumartesi",
+        "Pazar"
+    }
+
+    try:
+        sure = int(sure_dakika)
+    except ValueError:
+        return redirect(url_for("program_sayfasi"))
+
+    if (
+        not ders_adi
+        or gun not in gunler
+        or not baslangic_saati
+        or sure <= 0
+        or not egitmen
+    ):
+        return redirect(url_for("program_sayfasi"))
+
+    db = get_db()
+    db.execute("""
+        UPDATE programlar
+        SET gun = ?,
+            ders_adi = ?,
+            baslangic_saati = ?,
+            sure_dakika = ?,
+            egitmen = ?
+        WHERE id = ?
+    """, (
+        gun,
+        ders_adi,
+        baslangic_saati,
+        sure,
+        egitmen,
+        ders_id
+    ))
+    db.commit()
+    db.close()
+
+    return redirect(url_for("program_sayfasi"))
+
+
+@app.route("/program/ders/<int:ders_id>/temizle", methods=["POST"])
+def program_ders_temizle(ders_id):
+    db = get_db()
+    db.execute("""
+        DELETE FROM programlar
+        WHERE id = ?
+    """, (ders_id,))
+    db.commit()
+    db.close()
+
+    return redirect(url_for("program_sayfasi"))
+
+
 @app.route("/uyeler")
 def uyeler_sayfasi():
     db = get_db()

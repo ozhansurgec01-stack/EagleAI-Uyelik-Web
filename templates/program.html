@@ -77,6 +77,30 @@
                         </div>
                         <strong>{{ ders.ders_adi }}</strong>
                         <span>{{ ders.sure_dakika }} dk · {{ ders.egitmen }}</span>
+
+                        <div class="program-lesson-actions">
+                            <button
+                                type="button"
+                                class="program-edit"
+                                onclick='programDersDuzenleAc(
+                                    {{ ders.id }},
+                                    {{ ders.ders_adi|tojson }},
+                                    {{ ders.gun|tojson }},
+                                    {{ ders.baslangic_saati|tojson }},
+                                    {{ ders.sure_dakika|tojson }},
+                                    {{ ders.egitmen|tojson }}
+                                )'>
+                                ✏️ Düzenle
+                            </button>
+
+                            <form method="post"
+                                  action="{{ url_for('program_ders_temizle', ders_id=ders.id) }}"
+                                  onsubmit="return confirm('{{ ders.ders_adi }} dersi programdan temizlensin mi?');">
+                                <button type="submit" class="program-delete">
+                                    🧹 Temizle
+                                </button>
+                            </form>
+                        </div>
                     </div>
                     {% else %}
                     <div class="program-empty">
@@ -93,12 +117,13 @@
 <dialog id="programDersModal">
     <form method="post"
           action="{{ url_for('program_ders_ekle') }}"
-          class="modal program-modal">
+          class="modal program-modal"
+          id="programDersForm">
 
         <div class="modal-title-row">
             <div>
                 <span class="modal-kicker">DERS PROGRAMI</span>
-                <h2>Yeni Ders</h2>
+                <h2 id="programDersModalTitle">Yeni Ders</h2>
             </div>
             <button type="button"
                     class="modal-close"
@@ -140,7 +165,7 @@
                placeholder="Eğitmen adı"
                required>
 
-        <button type="submit" class="primary program-submit">
+        <button type="submit" class="primary program-submit" id="programDersSubmit">
             Dersi Ekle
         </button>
     </form>
@@ -149,9 +174,39 @@
 <script>
 function programDersAc(gun) {
     const modal = document.getElementById("programDersModal");
+    const form = document.getElementById("programDersForm");
+    const title = document.getElementById("programDersModalTitle");
+    const submit = document.getElementById("programDersSubmit");
     const select = document.getElementById("programGun");
 
+    form.action = "{{ url_for('program_ders_ekle') }}";
+    title.textContent = "Yeni Ders";
+    submit.textContent = "Dersi Ekle";
+    form.elements["ders_adi"].value = "";
+    form.elements["baslangic_saati"].value = "";
+    form.elements["sure_dakika"].value = "";
+    form.elements["egitmen"].value = "";
     select.value = gun;
+
+    modal.showModal();
+}
+
+function programDersDuzenleAc(id, dersAdi, gun, baslangicSaati, sureDakika, egitmen) {
+    const modal = document.getElementById("programDersModal");
+    const form = document.getElementById("programDersForm");
+    const title = document.getElementById("programDersModalTitle");
+    const submit = document.getElementById("programDersSubmit");
+
+    form.action = `/program/ders/${id}/duzenle`;
+    title.textContent = "Dersi Düzenle";
+    submit.textContent = "Değişiklikleri Kaydet";
+
+    form.elements["ders_adi"].value = dersAdi;
+    form.elements["gun"].value = gun;
+    form.elements["baslangic_saati"].value = baslangicSaati;
+    form.elements["sure_dakika"].value = sureDakika;
+    form.elements["egitmen"].value = egitmen;
+
     modal.showModal();
 }
 </script>
