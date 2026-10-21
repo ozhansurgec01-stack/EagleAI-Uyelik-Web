@@ -1335,6 +1335,39 @@ dialog::backdrop {
         font-size: 19px;
     }
 
+
+    /* MOBIL CIKIS BUTONU */
+    .sidebar-footer {
+        display: block;
+        position: fixed;
+        left: 15px;
+        bottom: max(12px, env(safe-area-inset-bottom));
+        z-index: 50;
+        width: 48px;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        background: transparent;
+    }
+
+    .sidebar-footer > span,
+    .sidebar-footer > strong,
+    .sidebar-footer > div > a {
+        display: none;
+    }
+
+    .sidebar-footer form button {
+        width: 48px;
+        height: 48px;
+        padding: 0;
+        border: 0;
+        border-radius: 12px;
+        background: #b91c1c;
+        color: white;
+        font-size: 22px;
+        font-weight: bold;
+    }
+
     .main-content {
         width: calc(100% - 78px);
         margin-left: 78px;
