@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>
         {% if sayfa == "odemeler" %}Ödemeler{% elif sayfa == "yoklama" %}Yoklama{% elif sayfa == "uyeler" %}Üyeler{% else %}Ana Sayfa{% endif %}
         · Üye Takip
@@ -57,6 +58,13 @@
         <div class="sidebar-footer">
             <span>Crazy Zumba Pilates</span>
             <strong>Yönetim Sistemi</strong>
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+                <a href="{{ url_for('change_password') }}">🔑 Şifre Değiştir</a>
+                <form method="post" action="{{ url_for('logout') }}" style="margin:0">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" style="cursor:pointer">↪ Çıkış Yap</button>
+                </form>
+            </div>
         </div>
     </aside>
 
@@ -1058,7 +1066,10 @@ async function smsUyeGonder() {
     try {
         const response = await fetch("/api/sms/gonder", {
             method: "POST",
-            headers: {"Content-Type": "application/json"},
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content
+            },
             body: JSON.stringify({uye_id: Number(uyeId), mesaj: mesaj})
         });
         const data = await response.json();
@@ -1119,7 +1130,10 @@ async function smsDuyuruGonder() {
     try {
         const response = await fetch("/api/sms/duyuru", {
             method: "POST",
-            headers: {"Content-Type": "application/json"},
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content
+            },
             body: JSON.stringify({uye_ids: uyeIds, mesaj: mesaj})
         });
         const data = await response.json();
@@ -1156,6 +1170,14 @@ async function smsDuyuruGonder() {
         // Tum POST formlarinda cift gonderimi engelle.
         document.querySelectorAll('form[method="post"]').forEach(function (form) {
             form.addEventListener("submit", function (event) {
+            if (form.method.toUpperCase() === "POST" &&
+                !form.querySelector('input[name="csrf_token"]')) {
+                const csrfInput = document.createElement("input");
+                csrfInput.type = "hidden";
+                csrfInput.name = "csrf_token";
+                csrfInput.value = document.querySelector('meta[name="csrf-token"]').content;
+                form.appendChild(csrfInput);
+            }
                 if (form.dataset.submitting === "1") {
                     event.preventDefault();
                     return;

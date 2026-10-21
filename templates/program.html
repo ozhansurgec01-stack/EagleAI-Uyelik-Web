@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Program · Üye Takip</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
@@ -40,6 +41,13 @@
         <div class="sidebar-footer">
             <span>Crazy Zumba Pilates</span>
             <strong>Yönetim Sistemi</strong>
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+                <a href="{{ url_for('change_password') }}">🔑 Şifre Değiştir</a>
+                <form method="post" action="{{ url_for('logout') }}" style="margin:0">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" style="cursor:pointer">↪ Çıkış Yap</button>
+                </form>
+            </div>
         </div>
     </aside>
 
@@ -209,6 +217,19 @@ function programDersDuzenleAc(id, dersAdi, gun, baslangicSaati, sureDakika, egit
 
     modal.showModal();
 }
+
+document.querySelectorAll('form[method="post"], form[method="POST"]').forEach(function (form) {
+    form.addEventListener("submit", function () {
+        if (!form.querySelector('input[name="csrf_token"]')) {
+            const csrfInput = document.createElement("input");
+            csrfInput.type = "hidden";
+            csrfInput.name = "csrf_token";
+            csrfInput.value = document.querySelector('meta[name="csrf-token"]').content;
+            form.appendChild(csrfInput);
+        }
+    });
+});
+
 </script>
 
 </body>

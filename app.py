@@ -1,11 +1,160 @@
 from datetime import date, datetime
 import os
+import secrets
 from calendar import monthrange
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, session
 from database import get_db, init_db
+from werkzeug.security import generate_password_hash, check_password_hash
+import hmac
 
 app = Flask(__name__)
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = True
+
+if not app.config["SECRET_KEY"]:
+    raise RuntimeError("SECRET_KEY ortam değişkeni tanımlı değil.")
+
 init_db()
+
+def _password_matches(password):
+    db = get_db()
+    try:
+        row = db.execute(
+            "SELECT value FROM app_settings WHERE key = ?",
+            ("password_hash",)
+        ).fetchone()
+    finally:
+        db.close()
+
+    if row:
+        return check_password_hash(row["value"], password)
+
+    initial = os.environ.get("EAGLEAI_ACCESS_PASSWORD", "")
+    return bool(initial) and hmac.compare_digest(initial, password)
+
+
+def csrf_token():
+    token = session.get("_csrf_token")
+    if not token:
+        token = secrets.token_urlsafe(32)
+        session["_csrf_token"] = token
+    return token
+
+
+def _csrf_valid():
+    supplied = request.form.get("csrf_token", "")
+    if not supplied:
+        supplied = request.headers.get("X-CSRF-Token", "")
+    expected = session.get("_csrf_token", "")
+    return bool(supplied and expected) and hmac.compare_digest(supplied, expected)
+
+
+@app.context_processor
+def inject_csrf_token():
+    return {"csrf_token": csrf_token}
+
+
+@app.before_request
+def require_login():
+    endpoint = request.endpoint or ""
+    if endpoint == "static" or endpoint in {
+        "login", "logout", "change_password"
+    }:
+        return None
+
+    # Worker kendi Bearer token kontrolünü uygulamaya devam eder.
+    if request.path in {
+        "/api/sms/worker/next",
+        "/api/sms/worker/result"
+    }:
+        return None
+
+    if session.get("authenticated"):
+        if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
+            if not _csrf_valid():
+                if request.path.startswith("/api/"):
+                    return jsonify({
+                        "ok": False,
+                        "mesaj": "Oturum doğrulaması başarısız. Sayfayı yenileyin."
+                    }), 400
+                return "Oturum doğrulaması başarısız. Sayfayı yenileyin.", 400
+        return None
+
+    if request.path.startswith("/api/"):
+        return jsonify({
+            "ok": False,
+            "mesaj": "Giriş yapmanız gerekiyor."
+        }), 401
+
+    return redirect(url_for("login"))
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    hata = None
+    if request.method == "POST":
+        if not _csrf_valid():
+            return "Oturum doğrulaması başarısız. Sayfayı yenileyin.", 400
+        password = request.form.get("password", "")
+        if _password_matches(password):
+            session.clear()
+            session["authenticated"] = True
+            return redirect(url_for("dashboard"))
+        hata = "Şifre hatalı. Tekrar deneyin."
+
+    return render_template("login.html", hata=hata)
+
+
+@app.route("/logout", methods=["POST"])
+def logout():
+    if not _csrf_valid():
+        return "Oturum doğrulaması başarısız. Sayfayı yenileyin.", 400
+    session.clear()
+    return redirect(url_for("login"))
+
+
+@app.route("/change-password", methods=["GET", "POST"])
+def change_password():
+    if not session.get("authenticated"):
+        return redirect(url_for("login"))
+
+    hata = None
+    mesaj = None
+
+    if request.method == "POST":
+        if not _csrf_valid():
+            return "Oturum doğrulaması başarısız. Sayfayı yenileyin.", 400
+        current = request.form.get("current_password", "")
+        new = request.form.get("new_password", "")
+        confirm = request.form.get("confirm_password", "")
+
+        if not _password_matches(current):
+            hata = "Mevcut şifre hatalı."
+        elif len(new) < 12:
+            hata = "Yeni şifre en az 12 karakter olmalı."
+        elif new != confirm:
+            hata = "Yeni şifreler eşleşmiyor."
+        elif hmac.compare_digest(current, new):
+            hata = "Yeni şifre mevcut şifreden farklı olmalı."
+        else:
+            db = get_db()
+            try:
+                hashed = generate_password_hash(new)
+                db.execute(
+                    "INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)",
+                    ("password_hash", hashed)
+                )
+                db.commit()
+                mesaj = "Şifre değiştirildi."
+            finally:
+                db.close()
+
+    return render_template(
+        "change_password.html", hata=hata, mesaj=mesaj
+    )
+
 
 
 def kalan_gun_hesapla(bitis):
